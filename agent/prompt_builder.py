@@ -12,16 +12,19 @@ def build_image_prompt(product: dict, image_type: str) -> str:
     desc = product.get("desc", "")
     style = product.get("style", "商业产品摄影")
 
+    if image_type not in ("static", "dynamic"):
+        raise ValueError(f"Invalid image_type: {image_type}. Must be 'static' or 'dynamic'")
+
     if image_type == "static":
         return (
             f"Ultra realistic product photography, {name}, {desc}, "
             f"悬浮展示, dark cinematic background, "
             f"studio lighting, premium technology aesthetic, 8k, {style}"
         )
-    else:
+    else:  # dynamic
         return (
-            f"{name} 工作状态, {desc}, "
-            f"modern apartment entrance, subtle glowing indicator, "
+            f"{name} in working state, {desc}, "
+            f"工作状态, modern apartment entrance, subtle glowing indicator, "
             f"premium lifestyle scene, cinematic composition, 8k, {style}"
         )
 
@@ -49,4 +52,8 @@ def apply_modification(original_prompt: str, modification: str) -> str:
         original_prompt: 原始 Prompt
         modification: 用户修改描述（如"换白色背景"）
     """
+    if not original_prompt:
+        raise ValueError("original_prompt cannot be empty")
+    if not modification:
+        raise ValueError("modification cannot be empty")
     return f"{original_prompt}, {modification}"
