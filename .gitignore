@@ -11,3 +11,9 @@ temp/
 # IDE
 .vscode/
 .idea/
+
+# FFmpeg build
+ffmpeg-*/
+
+# Project outputs
+projects/

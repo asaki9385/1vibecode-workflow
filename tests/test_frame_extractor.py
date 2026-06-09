@@ -26,7 +26,8 @@ def test_extract_frames_success(mock_which, mock_run, tmp_path):
     assert count == 5
 
 @patch("agent.frame_extractor.shutil.which", return_value=None)
-def test_extract_frames_no_ffmpeg(mock_which):
+@patch("agent.frame_extractor.os.path.exists", return_value=False)
+def test_extract_frames_no_ffmpeg(mock_exists, mock_which):
     """Should raise RuntimeError when ffmpeg not found"""
     with pytest.raises(RuntimeError, match="未找到 ffmpeg"):
         extract_frames("test.mp4", "output", fps=24)

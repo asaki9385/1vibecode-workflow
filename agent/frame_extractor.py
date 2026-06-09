@@ -2,6 +2,9 @@ import os
 import shutil
 import subprocess
 
+# 自定义 ffmpeg 路径（如果不在系统 PATH 中）
+FFMPEG_PATH = "D:/1vibecode-workflow/ffmpeg-2026-06-08-git-6028720d70-essentials_build/bin/ffmpeg.exe"
+
 
 def extract_frames(video_path: str, output_dir: str, fps: int = 24) -> int:
     """将视频拆解为 JPEG 帧序列，返回总帧数
@@ -14,7 +17,9 @@ def extract_frames(video_path: str, output_dir: str, fps: int = 24) -> int:
     if fps <= 0:
         raise ValueError(f"fps must be positive, got {fps}")
 
-    if not shutil.which("ffmpeg"):
+    # 检查 ffmpeg 是否可用
+    ffmpeg_cmd = FFMPEG_PATH if os.path.exists(FFMPEG_PATH) else shutil.which("ffmpeg")
+    if not ffmpeg_cmd:
         raise RuntimeError(
             "未找到 ffmpeg，请先安装：\n"
             "  macOS:   brew install ffmpeg\n"
@@ -29,7 +34,7 @@ def extract_frames(video_path: str, output_dir: str, fps: int = 24) -> int:
 
     output_pattern = os.path.join(output_dir, "frame_%04d.jpg")
     cmd = [
-        "ffmpeg",
+        ffmpeg_cmd,
         "-i", video_path,
         "-vf", f"fps={fps}",
         "-q:v", "2",

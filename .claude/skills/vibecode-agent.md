@@ -127,6 +127,8 @@ description: VibeCode 产品视频工作流 Agent，支持图生图微调、断�
 - 复制帧图片到 projects/{产品名}/public/frames/
 - 生成 PROMPT.md（建站提示词）
 - 生成 rules.json（编码规范）
+- 调用 `agent/web_builder.py` 的 `generate_player_html(frame_count, fps, title)` 生成英雄镜头风格展示网页
+- 也可使用 `/hero-shot-builder` 技能获取详细的网页构建指南
 
 进入 DONE。
 
@@ -188,4 +190,10 @@ build_video_prompt(effect_type: str) -> str
 ### agent/frame_extractor.py
 ```python
 extract_frames(video_path: str, output_dir: str, fps: int = 24) -> int  # 返回帧数
+```
+
+### agent/web_builder.py
+```python
+# 生成英雄镜头风格展示网页
+generate_player_html(frame_count: int, fps: int = 24, title: str = "Hero Shot") -> str
 ```

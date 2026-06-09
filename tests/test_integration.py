@@ -18,20 +18,14 @@ def test_full_workflow_cycle(tmp_path):
     # CONFIRM_PRODUCT
     wf.set_stage("CONFIRM_PRODUCT")
     wf.set_data("product", {"name": "Test", "desc": "Test desc", "style": "科技感"})
+    wf.set_data("config", {"effect": "wind", "ratio": "16:9"})
     assert wf.get_data("product")["name"] == "Test"
 
-    # PLAN_IMAGES
-    wf.set_stage("PLAN_IMAGES")
+    # GENERATE
+    wf.set_stage("GENERATE")
     wf.set_data("images", {
-        "img1": {"type": "static", "prompt": "test prompt 1"},
-        "img2": {"type": "dynamic", "prompt": "test prompt 2"}
-    })
-
-    # GENERATE_IMAGES
-    wf.set_stage("GENERATE_IMAGES")
-    wf.set_data("images", {
-        "img1": {"prompt": "test", "path": "generated/image1.png"},
-        "img2": {"prompt": "test", "path": "generated/image2.png"}
+        "img1": {"path": "generated/image1.png"},
+        "img2": {"path": "generated/image2.png"}
     })
 
     # CONFIRM_IMAGES
