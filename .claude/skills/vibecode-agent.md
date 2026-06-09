@@ -30,6 +30,9 @@ description: VibeCode 产品视频工作流 Agent，支持多轮对话、断点�
 - 建议的产品名称
 
 将产品信息保存到 workflow.json 的 product 字段。
+
+> **注意：** 后续阶段中的 `{产品名}` 均来自 `workflow.json` 的 `product.name` 字段。
+
 然后进入 CONFIRM_PRODUCT。
 
 ### CONFIRM_PRODUCT
@@ -155,7 +158,6 @@ wf.reset()                      # 重置到 INIT
 ### agent/image_generator.py
 ```python
 generate_image(prompt: str, output_path: str) -> str    # 生成图片，返回路径
-apply_modification(original: str, modification: str) -> str  # 合并 Prompt
 ```
 
 ### agent/prompt_builder.py
