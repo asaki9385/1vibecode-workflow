@@ -27,13 +27,21 @@ class Workflow:
     def _load(self) -> dict:
         """Load state from file or create default"""
         if os.path.exists(self.state_file):
-            with open(self.state_file, "r", encoding="utf-8") as f:
-                return json.load(f)
+            try:
+                with open(self.state_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if not isinstance(data, dict):
+                        return {"stage": "INIT"}
+                    return data
+            except (json.JSONDecodeError, IOError):
+                return {"stage": "INIT"}
         return {"stage": "INIT"}
 
     def save(self):
         """Persist current state to file"""
-        os.makedirs(os.path.dirname(self.state_file), exist_ok=True)
+        dir_name = os.path.dirname(self.state_file)
+        if dir_name:
+            os.makedirs(dir_name, exist_ok=True)
         with open(self.state_file, "w", encoding="utf-8") as f:
             json.dump(self._data, f, indent=2, ensure_ascii=False)
 
