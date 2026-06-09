@@ -16,9 +16,9 @@ description: VibeCode 产品视频工作流 Agent，支持多轮对话、断点�
 ## 阶段流程
 
 ### INIT
-检测 `input/product.jpg` 是否存在：
+检测 `input/` 目录下是否存在图片文件（支持 .jpg, .jpeg, .png, .webp）：
 - 存在 → 进入 ANALYZE
-- 不存在 → 提示用户放入产品图
+- 不存在 → 提示用户放入产品图到 input/ 目录
 
 ### ANALYZE
 用视觉分析产品图片，输出产品特征摘要：
@@ -27,7 +27,9 @@ description: VibeCode 产品视频工作流 Agent，支持多轮对话、断点�
 - 使用场景
 - 目标用户
 - 适合的风格
+- 建议的产品名称
 
+将产品信息保存到 workflow.json 的 product 字段。
 然后进入 CONFIRM_PRODUCT。
 
 ### CONFIRM_PRODUCT
@@ -62,6 +64,7 @@ C. 产品场景图
 
 如果用户选择"编辑"，让用户粘贴修改后的 Prompt。
 
+创建 `generated/` 目录（如不存在）。
 调用 `agent/image_generator.py` 生成图片，保存到 `generated/image1.png` 和 `generated/image2.png`。
 
 进入 CONFIRM_IMAGES。
@@ -75,7 +78,7 @@ C. 产品场景图
 
 如果用户选择"修改"：
 - 询问修改内容（如"换白色背景"）
-- 调用 `apply_modification()` 生成新 Prompt
+- 调用 `agent/prompt_builder.py` 的 `apply_modification()` 生成新 Prompt
 - 重新生成图片
 - 回到 CONFIRM_IMAGES
 
@@ -88,7 +91,7 @@ C. 产品场景图
 1. 直接使用
 2. 编辑后使用
 
-同时生成 VIDEO_GUIDE.md，包含：
+同时在根目录生成 VIDEO_GUIDE.md，包含：
 - 即梦AI/Seedance 使用步骤
 - 上传图片路径
 - 建议参数（时长、比例、分辨率）
@@ -99,9 +102,11 @@ C. 产品场景图
 提示用户：
 "请将生成的视频放入 generated/video.mp4"
 
-轮询检测文件是否存在：
-- 存在 → 进入 EXTRACT_FRAMES
-- 不存在 → 提示等待
+进入 WAIT_VIDEO 阶段后，提示用户放置文件：
+- 每 5 秒检测一次文件是否存在
+- 最多等待 10 分钟（120 次检测）
+- 超时后提示用户是否继续等待或暂停
+- 文件存在后立即进入 EXTRACT_FRAMES
 
 ### EXTRACT_FRAMES
 调用 `agent/frame_extractor.py` 拆帧：
@@ -127,10 +132,40 @@ C. 产品场景图
 
 - "重新开始" → 清空 workflow.json，回到 INIT
 - "暂停" → 保存当前状态，结束会话
-- "跳过视频" → 直接用 input/ 中的图片作为帧
+- "跳过视频" → 直接用 input/ 中的图片作为帧，复制到 generated/frames/，跳转到 BUILD_PROJECT
 
 ## 错误处理
 
 - API 调用失败 → 保留原 Prompt，提示重试
 - ffmpeg 失败 → 检查视频文件，提示重新放入
 - 任何错误不更新 workflow.json，保持上一状态
+
+## Python 模块接口
+
+### agent/workflow.py
+```python
+wf = Workflow(state_file="state/workflow.json")
+wf.get_stage() -> str           # 获取当前阶段
+wf.set_stage(stage: str)        # 设置阶段（自动保存）
+wf.get_data(key: str) -> Any    # 获取数据
+wf.set_data(key: str, value)    # 设置数据（自动保存）
+wf.reset()                      # 重置到 INIT
+```
+
+### agent/image_generator.py
+```python
+generate_image(prompt: str, output_path: str) -> str    # 生成图片，返回路径
+apply_modification(original: str, modification: str) -> str  # 合并 Prompt
+```
+
+### agent/prompt_builder.py
+```python
+build_image_prompt(product: dict, image_type: str) -> str  # image_type: "static"/"dynamic"
+build_video_prompt(img1_desc: str, img2_desc: str) -> str
+apply_modification(original_prompt: str, modification: str) -> str
+```
+
+### agent/frame_extractor.py
+```python
+extract_frames(video_path: str, output_dir: str, fps: int = 24) -> int  # 返回帧数
+```
