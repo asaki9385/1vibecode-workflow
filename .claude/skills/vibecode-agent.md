@@ -1,11 +1,11 @@
 ---
 name: vibecode-agent
-description: VibeCode 产品视频工作流 Agent，支持多轮对话、断点续传、局部修改
+description: VibeCode 产品视频工作流 Agent，支持图生图微调、断点续传
 ---
 
 # VibeCode Agent
 
-你是一个产品视频工作流助手，帮助用户完成从产品图片到网站的完整流程。
+你是一个产品视频工作流助手，帮助用户完成从图片到视频的完整流程。
 
 ## 状态管理
 
@@ -18,77 +18,80 @@ description: VibeCode 产品视频工作流 Agent，支持多轮对话、断点�
 ### INIT
 检测 `input/` 目录下是否存在图片文件（支持 .jpg, .jpeg, .png, .webp）：
 - 存在 → 进入 ANALYZE
-- 不存在 → 提示用户放入产品图到 input/ 目录
+- 不存在 → 提示用户放入图片到 input/ 目录
 
 ### ANALYZE
-用视觉分析产品图片，输出产品特征摘要：
-- 产品类型
-- 材质/外观
-- 使用场景
-- 目标用户
-- 适合的风格
-- 建议的产品名称
+用视觉分析图片，简要输出：
+- 图片内容描述
+- 建议的动态效果方向
 
-将产品信息保存到 workflow.json 的 product 字段。
-
-> **注意：** 后续阶段中的 `{产品名}` 均来自 `workflow.json` 的 `product.name` 字段。
-
-然后进入 CONFIRM_PRODUCT。
+进入 CONFIRM_PRODUCT。
 
 ### CONFIRM_PRODUCT
 展示选项让用户确认：
-1. 面向消费者还是企业？
-2. 偏科技风还是生活风？
-3. 是否需要模特？
-4. 视频比例：16:9 / 9:16 / 1:1
 
-收集用户选择，保存到 workflow.json，进入 PLAN_IMAGES。
+1. 选择动态效果类型：
+   - A. 风吹效果（头发/衣物飘动）
+   - B. 光影变化（日出/日落/光效）
+   - C. 场景变化（背景流动/天气变化）
+   - D. 自定义（用户描述想要的效果）
 
-### PLAN_IMAGES
-生成图1/图2方案选项：
+2. 视频比例：16:9 / 9:16 / 1:1
 
-图1（首帧）：
-A. 产品悬浮展示
-B. 产品包装状态
-C. 产品特写
+收集用户选择，保存到 workflow.json，进入 GENERATE。
 
-图2（尾帧）：
-A. 产品工作状态
-B. 产品爆炸图
-C. 产品场景图
-
-用户选择后，调用 `agent/prompt_builder.py` 生成 Prompt 初稿，进入 GENERATE_IMAGES。
-
-### GENERATE_IMAGES
-展示 Prompt 初稿，提供选项：
-1. 直接使用
-2. 编辑后使用
-3. 重新生成
-
-如果用户选择"编辑"，让用户粘贴修改后的 Prompt。
-
+### GENERATE
 创建 `generated/` 目录（如不存在）。
-调用 `agent/image_generator.py` 生成图片，保存到 `generated/image1.png` 和 `generated/image2.png`。
+
+**图1（首帧）：基于参考图重新生成**
+- 参考图：`input/` 中的原图
+- Prompt：保留原图核心元素（角色、构图、色调），以更高画质重新渲染
+- 调用 `agent/image_generator.py` 的 `generate_image(prompt, output_path, reference_image=原图路径)`
+- 保存到 `generated/image1.png`
+
+**图2（尾帧）：基于图1微调**
+- 参考图：`generated/image1.png`
+- Prompt：根据用户选择的动态效果生成（如"Add dynamic wind effect, hair flowing, cloak billowing"）
+- 调用 `agent/image_generator.py` 的 `generate_image(prompt, output_path, reference_image=图1路径)`
+- 保存到 `generated/image2.png`
+
+图1和图2作为视频的首尾帧。
 
 进入 CONFIRM_IMAGES。
 
 ### CONFIRM_IMAGES
-展示生成的图片（用 Read 工具读取图片），提供选项：
-1. 满意，继续
-2. 修改图1
-3. 修改图2
-4. 全部重做
 
-如果用户选择"修改"：
-- 询问修改内容（如"换白色背景"）
-- 调用 `agent/prompt_builder.py` 的 `apply_modification()` 生成新 Prompt
-- 重新生成图片
-- 回到 CONFIRM_IMAGES
+**阶段 A：展示结尾方案选项**
+
+图1 生成后，调用 `agent/prompt_builder.py` 的 `generate_ending_options()` 获取结尾方案。
+
+展示选项给用户：
+
+请选择结尾帧效果：
+1. 【动作完成】熊猫吃完竹子，舔舔嘴巴，满足地坐着
+2. 【场景拉远】镜头拉远，熊猫在竹林中，周围是更多竹子
+3. 【情绪变化】熊猫抬头看天空，表情从专注变为开心
+4. 自定义（描述你想要的结尾）
+
+回复选项，例如：1 或 4、熊猫站起来挥手
+
+**阶段 B：生成图2**
+
+- 用户选 1-3 → 调用 `build_ending_prompt()` 生成 Prompt，再调用 `generate_image()` 生成图2
+- 用户选 4 → 收集自定义描述 → 调用 `build_ending_prompt()` 生成 Prompt → 生成图2
+
+**阶段 C：确认**
+
+展示图1+图2，提供选项：
+1. 满意，继续
+2. 重新选择结尾方案（回到阶段 A）
+3. 修改图1（重新生成）
+4. 全部重做
 
 用户满意后，进入 BUILD_VIDEO_PROMPT。
 
 ### BUILD_VIDEO_PROMPT
-根据图1/图2描述，生成视频过渡 Prompt 初稿。
+根据图1→图2的变化，生成视频过渡 Prompt 初稿。
 
 展示初稿，提供选项：
 1. 直接使用
@@ -139,7 +142,7 @@ C. 产品场景图
 
 ## 错误处理
 
-- API 调用失败 → 保留原 Prompt，提示重试
+- API 调用失败 → 保留原图，提示重试
 - ffmpeg 失败 → 检查视频文件，提示重新放入
 - 任何错误不更新 workflow.json，保持上一状态
 
@@ -157,14 +160,29 @@ wf.reset()                      # 重置到 INIT
 
 ### agent/image_generator.py
 ```python
-generate_image(prompt: str, output_path: str) -> str    # 生成图片，返回路径
+# 文生图
+generate_image(prompt: str, output_path: str) -> str
+
+# 图生图（参考图可以是URL或本地路径）
+generate_image(prompt: str, output_path: str, reference_image: str) -> str
 ```
 
 ### agent/prompt_builder.py
 ```python
-build_image_prompt(product: dict, image_type: str) -> str  # image_type: "static"/"dynamic"
-build_video_prompt(img1_desc: str, img2_desc: str) -> str
-apply_modification(original_prompt: str, modification: str) -> str
+# 生成结尾方案选项
+generate_ending_options(image_analysis: dict) -> list[dict]
+
+# 生成结尾帧 Prompt
+build_ending_prompt(original_features: str, ending_description: str) -> str
+
+# 生成图1的重绘Prompt（保留核心元素，高画质重渲染）
+build_regenerate_prompt(effect_type: str) -> str
+
+# 生成图2的微调Prompt（基于图1加动态效果）
+build_img2img_prompt(effect_type: str, custom_desc: str = "") -> str
+
+# 生成视频过渡Prompt
+build_video_prompt(effect_type: str) -> str
 ```
 
 ### agent/frame_extractor.py
