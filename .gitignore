@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+.env
+
+# Runtime
+state/
+generated/
+temp/
+
+# IDE
+.vscode/
+.idea/
