@@ -1,5 +1,4 @@
 import os
-import sys
 import shutil
 import subprocess
 
@@ -10,18 +9,21 @@ def extract_frames(video_path: str, output_dir: str, fps: int = 24) -> int:
     Args:
         video_path: 视频文件路径
         output_dir: 帧输出目录
-        fps: 提取帧率
+        fps: 提取帧率，必须大于0
     """
+    if fps <= 0:
+        raise ValueError(f"fps must be positive, got {fps}")
+
     if not shutil.which("ffmpeg"):
-        print("❌ 未找到 ffmpeg，请先安装：")
-        print("   macOS:   brew install ffmpeg")
-        print("   Windows: https://www.gyan.dev/ffmpeg/builds/")
-        print("   Linux:   sudo apt install ffmpeg")
-        sys.exit(1)
+        raise RuntimeError(
+            "未找到 ffmpeg，请先安装：\n"
+            "  macOS:   brew install ffmpeg\n"
+            "  Windows: https://www.gyan.dev/ffmpeg/builds/\n"
+            "  Linux:   sudo apt install ffmpeg"
+        )
 
     if not os.path.exists(video_path):
-        print(f"❌ 视频文件不存在：{video_path}")
-        sys.exit(1)
+        raise FileNotFoundError(f"视频文件不存在：{video_path}")
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -38,7 +40,7 @@ def extract_frames(video_path: str, output_dir: str, fps: int = 24) -> int:
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
     if result.returncode != 0:
-        raise Exception(f"ffmpeg 执行失败：\n{result.stderr[-500:]}")
+        raise RuntimeError(f"ffmpeg 执行失败：\n{result.stderr[-500:]}")
 
     frames = sorted([f for f in os.listdir(output_dir) if f.endswith(".jpg")])
     return len(frames)

@@ -27,11 +27,20 @@ def test_extract_frames_success(mock_which, mock_run, tmp_path):
 
 @patch("agent.frame_extractor.shutil.which", return_value=None)
 def test_extract_frames_no_ffmpeg(mock_which):
-    """Should raise when ffmpeg not found"""
-    with pytest.raises(SystemExit):
+    """Should raise RuntimeError when ffmpeg not found"""
+    with pytest.raises(RuntimeError, match="未找到 ffmpeg"):
         extract_frames("test.mp4", "output", fps=24)
 
-def test_extract_frames_no_video():
-    """Should raise when video file doesn't exist"""
-    with pytest.raises(SystemExit):
+@patch("agent.frame_extractor.shutil.which", return_value="/usr/bin/ffmpeg")
+def test_extract_frames_no_video(mock_which):
+    """Should raise FileNotFoundError when video file doesn't exist"""
+    with pytest.raises(FileNotFoundError, match="视频文件不存在"):
         extract_frames("nonexistent.mp4", "output", fps=24)
+
+def test_extract_frames_invalid_fps():
+    """Should raise ValueError for invalid fps"""
+    with pytest.raises(ValueError, match="fps must be positive"):
+        extract_frames("test.mp4", "output", fps=0)
+
+    with pytest.raises(ValueError, match="fps must be positive"):
+        extract_frames("test.mp4", "output", fps=-1)
