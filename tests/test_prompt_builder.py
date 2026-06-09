@@ -97,12 +97,19 @@ def test_generate_ending_options_panda():
         assert "type" in opt
         assert "description" in opt
         assert "prompt" in opt
+    assert "卡通熊猫" in options[0]["prompt"]
 
 
 def test_generate_ending_options_default():
     """Should provide default options when analysis is empty"""
     options = generate_ending_options({})
     assert len(options) >= 2
+
+
+def test_generate_ending_options_none():
+    """Should raise TypeError for None input"""
+    with pytest.raises(TypeError, match="image_analysis must be a dict"):
+        generate_ending_options(None)
 
 
 def test_generate_ending_options_types():

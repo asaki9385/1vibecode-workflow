@@ -96,8 +96,8 @@ def apply_modification(original_prompt: str, modification: str) -> str:
     return f"{original_prompt} {modification}"
 
 
-def generate_ending_options(image_analysis: dict) -> list:
-    """基于图1分析结果，生成 2-3 个结尾方案
+def generate_ending_options(image_analysis: dict) -> list[dict[str, str]]:
+    """基于图1分析结果，生成 3 个结尾方案
 
     Args:
         image_analysis: 图1的分析结果 {"subject": ..., "action": ..., "scene": ..., "mood": ...}
@@ -105,6 +105,8 @@ def generate_ending_options(image_analysis: dict) -> list:
     Returns:
         [{"type": "动作完成", "description": "...", "prompt": "..."}, ...]
     """
+    if image_analysis is None or not isinstance(image_analysis, dict):
+        raise TypeError("image_analysis must be a dict")
     subject = image_analysis.get("subject", "主体")
     action = image_analysis.get("action", "存在")
     scene = image_analysis.get("scene", "背景中")
