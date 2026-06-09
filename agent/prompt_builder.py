@@ -96,6 +96,29 @@ def apply_modification(original_prompt: str, modification: str) -> str:
     return f"{original_prompt} {modification}"
 
 
+def build_ending_prompt(original_features: str, ending_description: str) -> str:
+    """基于图1特征和结尾描述，生成图2的 Prompt
+
+    Args:
+        original_features: 图1需要保留的特征描述
+        ending_description: 结尾方案的描述
+
+    Returns:
+        图生图 Prompt
+    """
+    if not original_features:
+        raise ValueError("original_features cannot be empty")
+    if not ending_description:
+        raise ValueError("ending_description cannot be empty")
+
+    return (
+        f"Same subject as reference image. Preserve ALL original features: {original_features}. "
+        f"Change: {ending_description}. "
+        f"Do NOT add new elements not mentioned above. "
+        f"Maintain identical art style, color palette, and composition."
+    )
+
+
 def generate_ending_options(image_analysis: dict) -> list[dict[str, str]]:
     """基于图1分析结果，生成 3 个结尾方案
 

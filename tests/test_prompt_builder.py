@@ -1,5 +1,5 @@
 import pytest
-from agent.prompt_builder import build_regenerate_prompt, build_img2img_prompt, build_video_prompt, apply_modification, generate_ending_options
+from agent.prompt_builder import build_regenerate_prompt, build_img2img_prompt, build_video_prompt, apply_modification, generate_ending_options, build_ending_prompt
 
 
 def test_build_regenerate_prompt_wind():
@@ -118,3 +118,25 @@ def test_generate_ending_options_types():
     options = generate_ending_options(analysis)
     types = [opt["type"] for opt in options]
     assert len(set(types)) >= 2  # At least 2 different types
+
+
+def test_build_ending_prompt():
+    """Should build ending prompt with original features preserved"""
+    original = "卡通熊猫，黑白毛色，蓝色大眼睛，坐着吃竹子"
+    ending = "熊猫吃完竹子，舔舔嘴巴"
+    prompt = build_ending_prompt(original, ending)
+    assert original in prompt
+    assert ending in prompt
+    assert "Do NOT" in prompt  # Should have prohibition clause
+
+
+def test_build_ending_prompt_empty_original():
+    """Should raise ValueError for empty original features"""
+    with pytest.raises(ValueError, match="original_features cannot be empty"):
+        build_ending_prompt("", "some ending")
+
+
+def test_build_ending_prompt_empty_ending():
+    """Should raise ValueError for empty ending description"""
+    with pytest.raises(ValueError, match="ending_description cannot be empty"):
+        build_ending_prompt("some features", "")
