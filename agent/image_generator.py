@@ -1,5 +1,4 @@
 import os
-import sys
 import requests
 from dotenv import load_dotenv
 
@@ -45,7 +44,9 @@ def generate_image(prompt: str, output_path: str) -> str:
     img_resp = requests.get(image_url, timeout=60)
     img_resp.raise_for_status()
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    dir_name = os.path.dirname(output_path)
+    if dir_name:
+        os.makedirs(dir_name, exist_ok=True)
     with open(output_path, "wb") as f:
         f.write(img_resp.content)
 
