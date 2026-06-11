@@ -1,6 +1,7 @@
 import os
 import json
 import pytest
+from unittest.mock import patch, MagicMock
 from agent.workflow import Workflow
 
 def test_full_workflow_cycle(tmp_path):
@@ -73,3 +74,37 @@ def test_workflow_reset(tmp_path):
 
     assert wf.get_stage() == "INIT"
     assert wf.get_data("product") is None
+
+
+@patch("agent.image_generator.requests.post")
+@patch("agent.image_generator.requests.get")
+def test_workflow_with_image_generation(mock_get, mock_post, tmp_path, monkeypatch):
+    """Test full workflow with mocked external API calls"""
+    monkeypatch.setenv("ARK_API_KEY", "test-key")
+
+    state_file = tmp_path / "state" / "workflow.json"
+    output_path = str(tmp_path / "generated" / "image1.png")
+
+    mock_post.return_value = MagicMock(
+        status_code=200,
+        json=lambda: {"data": [{"url": "https://example.com/gen.png"}]}
+    )
+    mock_get.return_value = MagicMock(
+        status_code=200,
+        content=b"fake-png-data"
+    )
+
+    from agent.image_generator import generate_image
+
+    wf = Workflow(state_file=str(state_file))
+    wf.set_stage("GENERATE")
+
+    img_result = generate_image("anime character, wind effect", output_path)
+    assert os.path.exists(img_result)
+
+    wf.set_data("images", {"img1": {"path": img_result}})
+    wf.set_stage("CONFIRM_IMAGES")
+    assert wf.get_stage() == "CONFIRM_IMAGES"
+
+    saved_path = wf.get_data("images")["img1"]["path"]
+    assert os.path.exists(saved_path)
