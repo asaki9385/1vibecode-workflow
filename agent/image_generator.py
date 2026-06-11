@@ -1,20 +1,16 @@
 import os
 import time
 import base64
+import logging
 from typing import Optional
 
 import requests
-from dotenv import load_dotenv
 
+from agent.config import ARK_API_KEY, SEEDREAM_MODEL, BASE_URL, API_TIMEOUT
 from agent.exceptions import ImageGenerationError
 from agent.prompt_builder import apply_modification  # noqa: F401 – re-export for backward compat
 
-load_dotenv()
-
-ARK_API_KEY = os.getenv("ARK_API_KEY")
-SEEDREAM_MODEL = "doubao-seedream-5-0-260128"
-BASE_URL = "https://ark.cn-beijing.volces.com/api/v3"
-API_TIMEOUT = int(os.getenv("API_TIMEOUT", "60"))
+logger = logging.getLogger(__name__)
 
 SUPPORTED_FORMATS: set[str] = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff"}
 
@@ -75,6 +71,8 @@ def generate_image(prompt: str, output_path: str, reference_image: Optional[str]
         output_path: 保存路径
         reference_image: 参考图URL或本地路径（用于图生图模式）
     """
+    logger.info("Generating image: output=%s, has_reference=%s", output_path, reference_image is not None)
+
     if not ARK_API_KEY:
         raise ValueError("缺少 ARK_API_KEY，请在 .env 文件中配置")
 
@@ -122,4 +120,5 @@ def generate_image(prompt: str, output_path: str, reference_image: Optional[str]
     with open(output_path, "wb") as f:
         f.write(img_resp.content)
 
+    logger.info("Image saved: %s", output_path)
     return output_path

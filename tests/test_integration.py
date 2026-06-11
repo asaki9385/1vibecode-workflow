@@ -55,6 +55,7 @@ def test_workflow_persistence(tmp_path):
 
     # First instance
     wf1 = Workflow(state_file=str(state_file))
+    wf1.set_stage("ANALYZE")
     wf1.set_stage("CONFIRM_PRODUCT")
     wf1.set_data("product", {"name": "Test"})
 
@@ -68,7 +69,10 @@ def test_workflow_reset(tmp_path):
     state_file = tmp_path / "state" / "workflow.json"
     wf = Workflow(state_file=str(state_file))
 
-    wf.set_stage("DONE")
+    for stage in ["ANALYZE", "CONFIRM_PRODUCT", "GENERATE", "CONFIRM_IMAGES",
+                   "BUILD_VIDEO_PROMPT", "WAIT_VIDEO", "EXTRACT_FRAMES",
+                   "BUILD_PROJECT", "DONE"]:
+        wf.set_stage(stage)
     wf.set_data("product", {"name": "Test"})
     wf.reset()
 
@@ -81,6 +85,8 @@ def test_workflow_reset(tmp_path):
 def test_workflow_with_image_generation(mock_get, mock_post, tmp_path, monkeypatch):
     """Test full workflow with mocked external API calls"""
     monkeypatch.setenv("ARK_API_KEY", "test-key")
+    import agent.config
+    agent.config.ARK_API_KEY = "test-key"
 
     state_file = tmp_path / "state" / "workflow.json"
     output_path = str(tmp_path / "generated" / "image1.png")
@@ -97,6 +103,8 @@ def test_workflow_with_image_generation(mock_get, mock_post, tmp_path, monkeypat
     from agent.image_generator import generate_image
 
     wf = Workflow(state_file=str(state_file))
+    wf.set_stage("ANALYZE")
+    wf.set_stage("CONFIRM_PRODUCT")
     wf.set_stage("GENERATE")
 
     img_result = generate_image("anime character, wind effect", output_path)

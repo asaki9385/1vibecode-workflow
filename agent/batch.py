@@ -1,8 +1,11 @@
 import os
 import json
+import logging
 from enum import Enum
 from dataclasses import dataclass, asdict
 from typing import List, Optional, Dict, Any
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_STATE_FILE = "state/batch.json"
 

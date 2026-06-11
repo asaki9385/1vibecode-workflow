@@ -1,8 +1,11 @@
 import os
 import json
+import logging
 from pathlib import Path
 from typing import Any, Optional
 import portalocker
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_STATE_FILE = "state/workflow.json"
 
@@ -61,6 +64,15 @@ class Workflow:
         """Set current workflow stage"""
         if stage not in STAGES:
             raise ValueError(f"Invalid stage: {stage}. Must be one of {STAGES}")
+        current = self.get_stage()
+        current_idx = STAGES.index(current)
+        target_idx = STAGES.index(stage)
+        if target_idx > current_idx + 1:
+            raise ValueError(
+                f"Cannot skip stages: {current} -> {stage}. "
+                f"Must complete intermediate stages first."
+            )
+        logger.info("Stage transition: %s -> %s", current, stage)
         self._data["stage"] = stage
         self.save()
 
@@ -75,5 +87,6 @@ class Workflow:
 
     def reset(self):
         """Reset workflow to initial state"""
+        logger.info("Workflow reset from stage %s", self.get_stage())
         self._data = {"stage": "INIT"}
         self.save()

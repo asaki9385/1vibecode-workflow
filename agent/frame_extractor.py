@@ -1,10 +1,12 @@
 import os
 import shutil
 import subprocess
+import logging
 
+from agent.config import FFMPEG_PATH
 from agent.exceptions import FFmpegNotFoundError, FFmpegExecutionError
 
-FFMPEG_PATH = os.environ.get("FFMPEG_PATH", "")
+logger = logging.getLogger(__name__)
 
 
 def _find_ffmpeg() -> str:
@@ -25,6 +27,8 @@ def extract_frames(video_path: str, output_dir: str, fps: int = 24) -> int:
         output_dir: 帧输出目录
         fps: 提取帧率，必须大于0
     """
+    logger.info("Extracting frames: video=%s, output=%s, fps=%d", video_path, output_dir, fps)
+
     if fps <= 0:
         raise ValueError(f"fps must be positive, got {fps}")
 
@@ -59,4 +63,5 @@ def extract_frames(video_path: str, output_dir: str, fps: int = 24) -> int:
         raise FFmpegExecutionError(f"ffmpeg 执行失败：\n{result.stderr[-500:]}")
 
     frames = sorted([f for f in os.listdir(output_dir) if f.endswith(".jpg")])
+    logger.info("Extracted %d frames to %s", len(frames), output_dir)
     return len(frames)

@@ -23,6 +23,7 @@ def test_set_stage_invalid(tmp_workflow):
 
 def test_save_and_load(tmp_workflow):
     """Data should persist across save/load cycles"""
+    tmp_workflow.set_stage("ANALYZE")
     tmp_workflow.set_stage("CONFIRM_PRODUCT")
     tmp_workflow.set_data("product", {"name": "Test Product"})
 
@@ -33,7 +34,10 @@ def test_save_and_load(tmp_workflow):
 
 def test_reset(tmp_workflow):
     """reset should clear all state back to INIT"""
-    tmp_workflow.set_stage("DONE")
+    for stage in ["ANALYZE", "CONFIRM_PRODUCT", "GENERATE", "CONFIRM_IMAGES",
+                   "BUILD_VIDEO_PROMPT", "WAIT_VIDEO", "EXTRACT_FRAMES",
+                   "BUILD_PROJECT", "DONE"]:
+        tmp_workflow.set_stage(stage)
     tmp_workflow.set_data("product", {"name": "Test"})
     tmp_workflow.reset()
     assert tmp_workflow.get_stage() == "INIT"
@@ -59,3 +63,21 @@ def test_bare_filename(tmp_path):
     wf = Workflow(state_file=str(state_file))
     wf.set_stage("ANALYZE")
     assert wf.get_stage() == "ANALYZE"
+
+def test_set_stage_skips_forward(tmp_workflow):
+    """Should raise ValueError when skipping stages"""
+    with pytest.raises(ValueError, match="Cannot skip stages"):
+        tmp_workflow.set_stage("CONFIRM_PRODUCT")
+
+def test_set_stage_advances_one(tmp_workflow):
+    """Should allow advancing one stage at a time"""
+    tmp_workflow.set_stage("ANALYZE")
+    tmp_workflow.set_stage("CONFIRM_PRODUCT")
+    assert tmp_workflow.get_stage() == "CONFIRM_PRODUCT"
+
+def test_set_stage_backward_allowed(tmp_workflow):
+    """Should allow going back to a previous stage"""
+    tmp_workflow.set_stage("ANALYZE")
+    tmp_workflow.set_stage("CONFIRM_PRODUCT")
+    tmp_workflow.set_stage("ANALYZE")
+    assert tmp_workflow.get_stage() == "ANALYZE"

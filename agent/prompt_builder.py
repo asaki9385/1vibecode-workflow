@@ -1,6 +1,9 @@
 """Prompt generation for img2img and video creation"""
 
+import logging
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 def build_regenerate_prompt(effect_type: str, custom_desc: str = "") -> str:

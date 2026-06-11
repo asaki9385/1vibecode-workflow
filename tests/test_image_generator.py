@@ -12,6 +12,8 @@ from agent.exceptions import ImageGenerationError
 def mock_env(monkeypatch):
     """Set test API key"""
     monkeypatch.setenv("ARK_API_KEY", "test-key")
+    import agent.config
+    agent.config.ARK_API_KEY = "test-key"
 
 @patch("agent.image_generator.requests.post")
 @patch("agent.image_generator.requests.get")
@@ -56,16 +58,14 @@ def test_apply_modification():
 
 def test_generate_image_no_api_key(monkeypatch, tmp_path):
     """Should raise ValueError when API key is missing"""
-    monkeypatch.delenv("ARK_API_KEY", raising=False)
-    # Need to reload module to pick up the missing env var
-    # Patch load_dotenv at source to prevent .env file from restoring the var
-    import importlib
-    import agent.image_generator
-    with patch("dotenv.load_dotenv"):
-        importlib.reload(agent.image_generator)
-
-    with pytest.raises(ValueError, match="缺少 ARK_API_KEY"):
-        agent.image_generator.generate_image("test", str(tmp_path / "fail.png"))
+    import agent.config
+    original = agent.config.ARK_API_KEY
+    agent.config.ARK_API_KEY = ""
+    with patch("agent.image_generator.ARK_API_KEY", ""):
+        with pytest.raises(ValueError, match="缺少 ARK_API_KEY"):
+            from agent.image_generator import generate_image
+            generate_image("test", str(tmp_path / "fail.png"))
+    agent.config.ARK_API_KEY = original
 
 @patch("agent.image_generator.requests.post")
 @patch("agent.image_generator.requests.get")
@@ -213,11 +213,11 @@ def test_generate_image_accepts_tiff_reference(mock_get, mock_post, tmp_path, mo
 
 
 def test_configurable_timeout(monkeypatch):
-    """API_TIMEOUT should be read from env var"""
+    """API_TIMEOUT should be read from env var via config"""
     import importlib
-    import agent.image_generator
+    import agent.config
     monkeypatch.setenv("API_TIMEOUT", "120")
-    importlib.reload(agent.image_generator)
-    assert agent.image_generator.API_TIMEOUT == 120
+    importlib.reload(agent.config)
+    assert agent.config.API_TIMEOUT == 120
     monkeypatch.setenv("API_TIMEOUT", "60")
-    importlib.reload(agent.image_generator)
+    importlib.reload(agent.config)

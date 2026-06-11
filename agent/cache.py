@@ -3,6 +3,9 @@ import json
 import time
 import hashlib
 import shutil
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ImageCache:
