@@ -1,5 +1,7 @@
 """Prompt generation for img2img and video creation"""
 
+from typing import Optional
+
 
 def build_regenerate_prompt(effect_type: str, custom_desc: str = "") -> str:
     """生成图1的重绘Prompt — 强约束提取参考图全部特征，高画质重渲染
@@ -26,7 +28,7 @@ def build_regenerate_prompt(effect_type: str, custom_desc: str = "") -> str:
         "Only improve resolution, detail clarity, and rendering quality."
     )
 
-    extras = {
+    extras: dict[str, str] = {
         "wind": "After preserving all reference elements, add subtle natural wind dynamics: slight hair movement, gentle fabric flutter.",
         "lighting": "After preserving all reference elements, enhance lighting with soft volumetric rays and atmospheric depth.",
         "scene": "After preserving all reference elements, add flowing clouds and environmental movement in background.",
@@ -46,7 +48,7 @@ def build_img2img_prompt(effect_type: str, custom_desc: str = "") -> str:
     """
     base = "Same character, same art style, same background, maintain consistent design."
 
-    effects = {
+    effects: dict[str, str] = {
         "wind": f"{base} Add dynamic wind effect: hair flowing in the wind, green cloak billowing dramatically, fabric rippling with air movement.",
         "lighting": f"{base} Add dramatic lighting change: golden hour sunlight, warm glow on character, soft shadows, atmospheric light rays.",
         "scene": f"{base} Add scene dynamics: clouds flowing in background, subtle environment movement, atmospheric depth.",
@@ -62,7 +64,7 @@ def build_video_prompt(effect_type: str) -> str:
     Args:
         effect_type: 动态效果类型
     """
-    transitions = {
+    transitions: dict[str, str] = {
         "wind": (
             "The anime character stands heroically. Wind begins to blow, "
             "hair and cloak gradually flow with increasing intensity. "
@@ -135,7 +137,7 @@ def generate_ending_options(image_analysis: dict) -> list[dict[str, str]]:
     scene = image_analysis.get("scene", "背景中")
     mood = image_analysis.get("mood", "平静")
 
-    options = [
+    options: list[dict[str, str]] = [
         {
             "type": "动作完成",
             "description": f"{subject}完成了{action}，满足地休息",

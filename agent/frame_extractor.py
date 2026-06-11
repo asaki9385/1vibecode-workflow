@@ -2,8 +2,19 @@ import os
 import shutil
 import subprocess
 
-# 自定义 ffmpeg 路径（如果不在系统 PATH 中）
-FFMPEG_PATH = "D:/1vibecode-workflow/ffmpeg-2026-06-08-git-6028720d70-essentials_build/bin/ffmpeg.exe"
+from agent.exceptions import FFmpegNotFoundError, FFmpegExecutionError
+
+FFMPEG_PATH = os.environ.get("FFMPEG_PATH", "")
+
+
+def _find_ffmpeg() -> str:
+    """Locate ffmpeg binary: env var → hardcoded path → system PATH."""
+    if FFMPEG_PATH and os.path.exists(FFMPEG_PATH):
+        return FFMPEG_PATH
+    found = shutil.which("ffmpeg")
+    if found:
+        return found
+    return ""
 
 
 def extract_frames(video_path: str, output_dir: str, fps: int = 24) -> int:
@@ -17,14 +28,14 @@ def extract_frames(video_path: str, output_dir: str, fps: int = 24) -> int:
     if fps <= 0:
         raise ValueError(f"fps must be positive, got {fps}")
 
-    # 检查 ffmpeg 是否可用
-    ffmpeg_cmd = FFMPEG_PATH if os.path.exists(FFMPEG_PATH) else shutil.which("ffmpeg")
+    ffmpeg_cmd = _find_ffmpeg()
     if not ffmpeg_cmd:
-        raise RuntimeError(
+        raise FFmpegNotFoundError(
             "未找到 ffmpeg，请先安装：\n"
             "  macOS:   brew install ffmpeg\n"
             "  Windows: https://www.gyan.dev/ffmpeg/builds/\n"
-            "  Linux:   sudo apt install ffmpeg"
+            "  Linux:   sudo apt install ffmpeg\n"
+            "  或设置环境变量 FFMPEG_PATH 指向 ffmpeg 可执行文件"
         )
 
     if not os.path.exists(video_path):
@@ -45,7 +56,7 @@ def extract_frames(video_path: str, output_dir: str, fps: int = 24) -> int:
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
     if result.returncode != 0:
-        raise RuntimeError(f"ffmpeg 执行失败：\n{result.stderr[-500:]}")
+        raise FFmpegExecutionError(f"ffmpeg 执行失败：\n{result.stderr[-500:]}")
 
     frames = sorted([f for f in os.listdir(output_dir) if f.endswith(".jpg")])
     return len(frames)

@@ -2,6 +2,7 @@ import os
 import pytest
 from unittest.mock import patch, MagicMock
 from agent.frame_extractor import extract_frames
+from agent.exceptions import FFmpegNotFoundError
 
 @patch("agent.frame_extractor.subprocess.run")
 @patch("agent.frame_extractor.shutil.which", return_value="/usr/bin/ffmpeg")
@@ -28,8 +29,8 @@ def test_extract_frames_success(mock_which, mock_run, tmp_path):
 @patch("agent.frame_extractor.shutil.which", return_value=None)
 @patch("agent.frame_extractor.os.path.exists", return_value=False)
 def test_extract_frames_no_ffmpeg(mock_exists, mock_which):
-    """Should raise RuntimeError when ffmpeg not found"""
-    with pytest.raises(RuntimeError, match="未找到 ffmpeg"):
+    """Should raise FFmpegNotFoundError when ffmpeg not found"""
+    with pytest.raises(FFmpegNotFoundError, match="未找到 ffmpeg"):
         extract_frames("test.mp4", "output", fps=24)
 
 @patch("agent.frame_extractor.shutil.which", return_value="/usr/bin/ffmpeg")

@@ -2,7 +2,11 @@ import os
 import pytest
 import requests
 from unittest.mock import patch, MagicMock
-from agent.image_generator import generate_image, apply_modification, validate_image_format, SUPPORTED_FORMATS
+from agent.image_generator import (
+    generate_image, apply_modification, validate_image_format,
+    SUPPORTED_FORMATS, _request_with_retry, MAX_RETRIES, API_TIMEOUT,
+)
+from agent.exceptions import ImageGenerationError
 
 @pytest.fixture
 def mock_env(monkeypatch):
@@ -39,7 +43,7 @@ def test_generate_image_api_error(mock_post, tmp_path, mock_env):
         text="Bad request"
     )
 
-    with pytest.raises(Exception, match="图片生成失败"):
+    with pytest.raises(ImageGenerationError, match="图片生成失败"):
         generate_image("test", str(tmp_path / "fail.png"))
 
 def test_apply_modification():

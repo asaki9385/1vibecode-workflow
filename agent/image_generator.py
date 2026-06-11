@@ -1,15 +1,25 @@
 import os
+import time
 import base64
+from typing import Optional
+
 import requests
 from dotenv import load_dotenv
+
+from agent.exceptions import ImageGenerationError
+from agent.prompt_builder import apply_modification  # noqa: F401 – re-export for backward compat
 
 load_dotenv()
 
 ARK_API_KEY = os.getenv("ARK_API_KEY")
 SEEDREAM_MODEL = "doubao-seedream-5-0-260128"
 BASE_URL = "https://ark.cn-beijing.volces.com/api/v3"
+API_TIMEOUT = int(os.getenv("API_TIMEOUT", "60"))
 
-SUPPORTED_FORMATS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff"}
+SUPPORTED_FORMATS: set[str] = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff"}
+
+MAX_RETRIES = 3
+RETRY_BASE_DELAY = 1.0
 
 
 def validate_image_format(image_path: str) -> bool:
@@ -21,7 +31,7 @@ def validate_image_format(image_path: str) -> bool:
 def _image_to_data_url(image_path: str) -> str:
     """将本地图片转换为 base64 data URL"""
     ext = os.path.splitext(image_path)[1].lower()
-    mime_map = {
+    mime_map: dict[str, str] = {
         ".jpg": "image/jpeg",
         ".jpeg": "image/jpeg",
         ".png": "image/png",
@@ -37,7 +47,27 @@ def _image_to_data_url(image_path: str) -> str:
     return f"data:{mime};base64,{b64}"
 
 
-def generate_image(prompt: str, output_path: str, reference_image: str = None) -> str:
+def _request_with_retry(method: str, url: str, **kwargs) -> requests.Response:
+    """Execute an HTTP request with retry and exponential backoff.
+
+    Only retries on transient errors (connection, timeout). HTTP status errors
+    are raised immediately.
+    """
+    func = getattr(requests, method)
+    last_exc: Optional[Exception] = None
+    for attempt in range(MAX_RETRIES):
+        try:
+            resp = func(url, **kwargs)
+            resp.raise_for_status()
+            return resp
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as exc:
+            last_exc = exc
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_BASE_DELAY * (2 ** attempt))
+    raise last_exc  # type: ignore[misc]
+
+
+def generate_image(prompt: str, output_path: str, reference_image: Optional[str] = None) -> str:
     """调用 Seedream API 生成图片，返回保存路径
 
     Args:
@@ -53,7 +83,7 @@ def generate_image(prompt: str, output_path: str, reference_image: str = None) -
         "Content-Type": "application/json"
     }
 
-    payload = {
+    payload: dict = {
         "model": SEEDREAM_MODEL,
         "prompt": prompt,
         "size": "2K",
@@ -71,20 +101,20 @@ def generate_image(prompt: str, output_path: str, reference_image: str = None) -
         else:
             payload["image"] = _image_to_data_url(reference_image)
 
-    resp = requests.post(
+    resp = _request_with_retry(
+        "post",
         f"{BASE_URL}/images/generations",
         headers=headers,
         json=payload,
-        timeout=60
+        timeout=API_TIMEOUT,
     )
 
     if resp.status_code != 200:
-        raise Exception(f"图片生成失败 [{resp.status_code}]: {resp.text}")
+        raise ImageGenerationError(f"图片生成失败 [{resp.status_code}]: {resp.text}")
 
     image_url = resp.json()["data"][0]["url"]
 
-    img_resp = requests.get(image_url, timeout=60)
-    img_resp.raise_for_status()
+    img_resp = _request_with_retry("get", image_url, timeout=API_TIMEOUT)
 
     dir_name = os.path.dirname(output_path)
     if dir_name:
@@ -93,8 +123,3 @@ def generate_image(prompt: str, output_path: str, reference_image: str = None) -
         f.write(img_resp.content)
 
     return output_path
-
-
-def apply_modification(original_prompt: str, modification: str) -> str:
-    """合并原 Prompt 和修改描述，生成新 Prompt"""
-    return f"{original_prompt}, {modification}"
