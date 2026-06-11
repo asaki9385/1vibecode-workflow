@@ -73,6 +73,80 @@ ARK_API_KEY=你的火山方舟API密钥
 /vibecode-agent
 ```
 
+## Web UI（Streamlit）
+
+启动 Web 界面：
+
+```bash
+streamlit run app.py
+```
+
+功能页面：
+- **首页** — 上传产品图片，支持预览和历史记录
+- **批量处理** — 创建批次，跟踪多张图片的处理进度
+- **工作流** — 查看当前工作流阶段，支持重置和回退
+- **生成** — 手动输入 Prompt 生成图片，查看/管理缓存
+- **展示** — 浏览已生成项目和 Hero Shot 图片
+
+## 批量处理 API
+
+```python
+from agent.batch import BatchWorkflow, BatchStatus
+
+batch = BatchWorkflow("state/batch.json")
+
+# 创建批次
+items = batch.create(["img1.jpg", "img2.jpg", "img3.jpg"])
+
+# 获取下一个待处理项
+next_item = batch.get_next()
+
+# 标记完成/跳过
+batch.complete("img1.jpg")
+batch.skip("img2.jpg")
+
+# 查看进度
+print(batch.progress())  # 0.0 ~ 1.0
+print(batch.get_completed())  # 已处理数量
+```
+
+状态值：`PENDING` → `COMPLETED` / `SKIPPED`
+
+## 缓存配置
+
+```python
+from agent.cache import ImageCache
+
+cache = ImageCache(
+    state_dir="state/cache",     # 元数据目录
+    image_dir="generated/cache"  # 缓存图片目录
+)
+
+# 写入缓存（可选 TTL）
+cache.set("prompt text", "output.png", reference_image="ref.jpg", ttl=3600)
+
+# 查询缓存
+meta = cache.get("prompt text")
+if meta:
+    print(meta["cached_at"])  # Unix 时间戳
+
+# 清空缓存
+cache.clear()
+```
+
+缓存基于 prompt + reference_image 的 MD5 哈希。设置 TTL（秒）可自动过期。
+
+## 支持的图片格式
+
+| 格式 | 扩展名 | 备注 |
+|------|--------|------|
+| JPEG | `.jpg`, `.jpeg` | 最常用 |
+| PNG | `.png` | 支持透明 |
+| WebP | `.webp` | 压缩率高 |
+| GIF | `.gif` | 支持动图 |
+| BMP | `.bmp` | 无压缩位图 |
+| TIFF | `.tiff` | 印刷级 |
+
 ## 项目结构
 
 ```
