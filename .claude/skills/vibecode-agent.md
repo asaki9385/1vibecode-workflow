@@ -127,8 +127,14 @@ description: VibeCode 产品视频工作流 Agent，支持图生图微调、断�
 - 复制帧图片到 projects/{产品名}/public/frames/
 - 生成 PROMPT.md（建站提示词）
 - 生成 rules.json（编码规范）
-- 调用 `agent/web_builder.py` 的 `generate_player_html(frame_count, fps, title)` 生成英雄镜头风格展示网页
-- 也可使用 `/hero-shot-builder` 技能获取详细的网页构建指南
+- 调用 `agent/web_builder.py` 的 `generate_player_html(frame_count, fps, title, analysis)` 生成展示网页
+- **必须**使用 `/hero-shot-builder` 技能获取详细的网页构建指南
+- **必须**遵循 frontend-design skill 的设计原则：
+  - 使用独特字体（避免 Inter、Roboto 等通用字体）
+  - 根据素材特征选择美学方向（赛博朋克/有机/编辑/奢华/极简）
+  - 基于 image_analysis 生成上下文相关的文案
+  - 添加动画效果（错落渐入、悬停反馈）
+  - 添加质感效果（噪点纹理、渐变遮罩、磨砂玻璃）
 
 进入 DONE。
 

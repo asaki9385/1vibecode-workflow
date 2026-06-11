@@ -19,10 +19,10 @@ def test_generate_player_html_custom_fps():
 
 
 def test_generate_player_html_has_controls():
-    """Should include play button and progress bar"""
+    """Should include play button"""
     html = generate_player_html(frame_count=10, fps=24)
-    assert "playBtn" in html
-    assert "progress" in html
+    assert "toggle()" in html
+    assert "btn-primary" in html
 
 
 def test_generate_player_html_zero_frames():
@@ -84,17 +84,17 @@ def test_generate_player_html_has_style_tag():
 def test_generate_player_html_has_canvas_element():
     """Should include a canvas element for rendering"""
     html = generate_player_html(frame_count=10, fps=24)
-    assert '<canvas id="canvas">' in html
+    assert '<canvas id="bg">' in html
 
 
-def test_generate_player_html_has_info_cards():
-    """Should display frame count, fps, and duration in info cards"""
+def test_generate_player_html_has_stats():
+    """Should display frame count, fps, and duration in stats"""
     html = generate_player_html(frame_count=48, fps=24)
     assert "Frames" in html
     assert "Frame Rate" in html
     assert "Duration" in html
     assert "48" in html
-    assert "24 fps" in html
+    assert "24fps" in html
 
 
 def test_generate_player_html_custom_title():
@@ -104,29 +104,59 @@ def test_generate_player_html_custom_title():
     assert 'class="logo">My Project<' in html
 
 
-def test_generate_player_html_has_timeline():
-    """Should include a timeline element for seeking"""
-    html = generate_player_html(frame_count=10, fps=24)
-    assert "timeline" in html
-    assert "timeline-fill" in html
-
-
 def test_generate_player_html_has_loader():
     """Should include a loading overlay"""
     html = generate_player_html(frame_count=10, fps=24)
     assert "loader" in html
-    assert "Loading frames" in html
+    assert "Loading" in html
 
 
-def test_generate_player_html_has_footer():
-    """Should include a footer with keyboard hints"""
+def test_generate_player_html_has_hero_section():
+    """Should include hero section with content"""
     html = generate_player_html(frame_count=10, fps=24)
-    assert "<footer>" in html
-    assert "</footer>" in html
-    assert "Space" in html
+    assert "hero" in html
+    assert "hero-tag" in html
+    assert "hero-actions" in html
+
+
+def test_generate_player_html_has_stats_bar():
+    """Should include fixed stats bar at bottom"""
+    html = generate_player_html(frame_count=10, fps=24)
+    assert "stat-value" in html
+    assert "stat-label" in html
+    assert "AI" in html
+    assert "Generated" in html
 
 
 def test_generate_player_html_duration_calculation():
     """Should calculate correct duration string from frame_count and fps"""
     html = generate_player_html(frame_count=50, fps=24)
     assert "2:02" in html
+
+
+def test_generate_player_html_with_analysis():
+    """Should use analysis data to generate contextual content"""
+    analysis = {
+        "subject": "蓝紫色短发动漫少女",
+        "action": "手指轻触嘴唇",
+        "scene": "抽象泼墨背景",
+        "mood": "神秘"
+    }
+    html = generate_player_html(frame_count=10, fps=24, title="Test", analysis=analysis)
+    assert "神秘" in html
+    assert "蓝紫色短发动漫少女" in html
+
+
+def test_generate_player_html_has_glass_effects():
+    """Should include glass morphism effects"""
+    html = generate_player_html(frame_count=10, fps=24)
+    assert "backdrop-filter" in html
+    assert "blur(12px)" in html
+
+
+def test_generate_player_html_has_animations():
+    """Should include CSS animations"""
+    html = generate_player_html(frame_count=10, fps=24)
+    assert "@keyframes" in html
+    assert "fadeUp" in html
+    assert "animation:" in html

@@ -73,20 +73,15 @@ ARK_API_KEY=你的火山方舟API密钥
 /vibecode-agent
 ```
 
-## Web UI（Streamlit）
+## 使用方式
 
-启动 Web 界面：
+在 Claude Code 中通过命令与 Agent 交互：
 
-```bash
-streamlit run app.py
+```
+/vibecode-agent
 ```
 
-功能页面：
-- **首页** — 上传产品图片，支持预览和历史记录
-- **批量处理** — 创建批次，跟踪多张图片的处理进度
-- **工作流** — 查看当前工作流阶段，支持重置和回退
-- **生成** — 手动输入 Prompt 生成图片，查看/管理缓存
-- **展示** — 浏览已生成项目和 Hero Shot 图片
+Agent 会引导你完成整个工作流，支持选项式交互。
 
 ## 批量处理 API
 
@@ -156,8 +151,15 @@ vibecode-workflow/
 │   ├── image_generator.py    ← Seedream API 封装（支持 img2img）
 │   ├── prompt_builder.py     ← 提示词生成（含结尾帧方案）
 │   ├── frame_extractor.py    ← ffmpeg 拆帧
-│   └── web_builder.py        ← 英雄镜头网页生成
-├── tests/                    ← 测试文件（45 个测试）
+│   ├── web_builder.py        ← 英雄镜头网页生成
+│   ├── cache.py              ← 图片缓存
+│   ├── batch.py              ← 批量处理
+│   ├── progress.py           ← 进度通知
+│   ├── config.py             ← 配置管理
+│   └── exceptions.py         ← 自定义异常
+├── templates/
+│   └── hero_shot.html        ← HTML 模板
+├── tests/                    ← 测试文件（168 个测试）
 ├── .claude/skills/
 │   ├── vibecode-agent.md     ← 工作流技能定义
 │   └── hero-shot-builder.md  ← 网页构建技能
@@ -174,6 +176,8 @@ vibecode-workflow/
 │       └── rules.json        ← 编码规范
 ├── input/                    ← 放产品图片
 ├── .env                      ← API 密钥配置
+├── .env.example              ← 环境变量示例
+├── pyproject.toml            ← 项目配置
 └── requirements.txt          ← Python 依赖
 ```
 
