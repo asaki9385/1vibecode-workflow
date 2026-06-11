@@ -9,11 +9,27 @@ ARK_API_KEY = os.getenv("ARK_API_KEY")
 SEEDREAM_MODEL = "doubao-seedream-5-0-260128"
 BASE_URL = "https://ark.cn-beijing.volces.com/api/v3"
 
+SUPPORTED_FORMATS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff"}
+
+
+def validate_image_format(image_path: str) -> bool:
+    """验证图片格式是否受支持"""
+    ext = os.path.splitext(image_path)[1].lower()
+    return ext in SUPPORTED_FORMATS
+
 
 def _image_to_data_url(image_path: str) -> str:
     """将本地图片转换为 base64 data URL"""
     ext = os.path.splitext(image_path)[1].lower()
-    mime_map = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
+    mime_map = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+        ".gif": "image/gif",
+        ".bmp": "image/bmp",
+        ".tiff": "image/tiff",
+    }
     mime = mime_map.get(ext, "image/jpeg")
 
     with open(image_path, "rb") as f:
@@ -48,6 +64,8 @@ def generate_image(prompt: str, output_path: str, reference_image: str = None) -
     }
 
     if reference_image:
+        if not reference_image.startswith("http") and not validate_image_format(reference_image):
+            raise ValueError(f"不支持的图片格式: {os.path.splitext(reference_image)[1]}。支持的格式: {', '.join(sorted(SUPPORTED_FORMATS))}")
         if reference_image.startswith("http"):
             payload["image"] = reference_image
         else:
