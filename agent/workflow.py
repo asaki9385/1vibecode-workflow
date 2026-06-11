@@ -2,6 +2,7 @@ import os
 import json
 from pathlib import Path
 from typing import Any, Optional
+import portalocker
 
 DEFAULT_STATE_FILE = "state/workflow.json"
 
@@ -28,10 +29,14 @@ class Workflow:
         if os.path.exists(self.state_file):
             try:
                 with open(self.state_file, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    if not isinstance(data, dict):
-                        return {"stage": "INIT"}
-                    return data
+                    portalocker.lock(f, portalocker.LOCK_SH)
+                    try:
+                        data = json.load(f)
+                        if not isinstance(data, dict):
+                            return {"stage": "INIT"}
+                        return data
+                    finally:
+                        portalocker.unlock(f)
             except (json.JSONDecodeError, IOError):
                 return {"stage": "INIT"}
         return {"stage": "INIT"}
@@ -42,7 +47,11 @@ class Workflow:
         if dir_name:
             os.makedirs(dir_name, exist_ok=True)
         with open(self.state_file, "w", encoding="utf-8") as f:
-            json.dump(self._data, f, indent=2, ensure_ascii=False)
+            portalocker.lock(f, portalocker.LOCK_EX)
+            try:
+                json.dump(self._data, f, indent=2, ensure_ascii=False)
+            finally:
+                portalocker.unlock(f)
 
     def get_stage(self) -> str:
         """Get current workflow stage"""

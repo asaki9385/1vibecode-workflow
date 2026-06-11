@@ -1,7 +1,7 @@
 import os
 import pytest
 from unittest.mock import patch, MagicMock
-from agent.frame_extractor import extract_frames
+from agent.frame_extractor import extract_frames, _find_ffmpeg
 from agent.exceptions import FFmpegNotFoundError
 
 @patch("agent.frame_extractor.subprocess.run")
@@ -46,3 +46,28 @@ def test_extract_frames_invalid_fps():
 
     with pytest.raises(ValueError, match="fps must be positive"):
         extract_frames("test.mp4", "output", fps=-1)
+
+
+@patch("agent.frame_extractor.shutil.which", return_value="/usr/bin/ffmpeg")
+def test_find_ffmpeg_from_system_path(mock_which):
+    """Should find ffmpeg from system PATH when FFMPEG_PATH is empty"""
+    with patch("agent.frame_extractor.FFMPEG_PATH", ""):
+        result = _find_ffmpeg()
+    assert result == "/usr/bin/ffmpeg"
+
+
+@patch("agent.frame_extractor.shutil.which", return_value=None)
+def test_find_ffmpeg_not_found(mock_which):
+    """Should return empty string when ffmpeg not found anywhere"""
+    with patch("agent.frame_extractor.FFMPEG_PATH", ""):
+        result = _find_ffmpeg()
+    assert result == ""
+
+
+@patch("agent.frame_extractor.os.path.exists", return_value=True)
+@patch("agent.frame_extractor.shutil.which", return_value=None)
+def test_find_ffmpeg_from_env_var(mock_which, mock_exists):
+    """Should use FFMPEG_PATH env var when set and file exists"""
+    with patch("agent.frame_extractor.FFMPEG_PATH", "/custom/ffmpeg"):
+        result = _find_ffmpeg()
+    assert result == "/custom/ffmpeg"

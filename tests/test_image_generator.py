@@ -80,13 +80,41 @@ def test_generate_image_download_error(mock_get, mock_post, tmp_path, mock_env):
         status_code=200,
         json=lambda: {"data": [{"url": "https://example.com/img.png"}]}
     )
-    mock_get.return_value = MagicMock(
-        status_code=404,
-        raise_for_status=MagicMock(side_effect=requests.exceptions.HTTPError("404 Not Found"))
-    )
+    # Simulate HTTP 404: raise_for_status raises HTTPError which is NOT retried
+    mock_get.side_effect = requests.exceptions.HTTPError("404 Not Found")
 
     with pytest.raises(requests.exceptions.HTTPError):
         generate_image("test", str(tmp_path / "fail.png"))
+
+
+@patch("agent.image_generator.requests.post")
+def test_retry_on_connection_error(mock_post, tmp_path, mock_env):
+    """Should retry and eventually raise after max retries on connection errors"""
+    mock_post.side_effect = requests.exceptions.ConnectionError("connection refused")
+
+    with pytest.raises(requests.exceptions.ConnectionError):
+        generate_image("test", str(tmp_path / "retry.png"))
+    assert mock_post.call_count == MAX_RETRIES
+
+
+@patch("agent.image_generator.requests.post")
+def test_retry_succeeds_after_transient_failure(mock_post, tmp_path, mock_env):
+    """Should succeed when a transient error is followed by a good response"""
+    success_resp = MagicMock(
+        status_code=200,
+        json=lambda: {"data": [{"url": "https://example.com/img.png"}]}
+    )
+    mock_post.side_effect = [
+        requests.exceptions.ConnectionError("connection refused"),
+        success_resp,
+    ]
+    # Also mock the download
+    with patch("agent.image_generator.requests.get") as mock_get:
+        mock_get.return_value = MagicMock(status_code=200, content=b"img-data")
+        output_path = str(tmp_path / "retry-ok.png")
+        result = generate_image("test", output_path)
+        assert result == output_path
+    assert mock_post.call_count == 2
 
 
 def test_supported_formats():
@@ -182,3 +210,14 @@ def test_generate_image_accepts_tiff_reference(mock_get, mock_post, tmp_path, mo
     output_path = str(tmp_path / "out.png")
     result = generate_image("test", output_path, reference_image=ref_path)
     assert result == output_path
+
+
+def test_configurable_timeout(monkeypatch):
+    """API_TIMEOUT should be read from env var"""
+    import importlib
+    import agent.image_generator
+    monkeypatch.setenv("API_TIMEOUT", "120")
+    importlib.reload(agent.image_generator)
+    assert agent.image_generator.API_TIMEOUT == 120
+    monkeypatch.setenv("API_TIMEOUT", "60")
+    importlib.reload(agent.image_generator)
