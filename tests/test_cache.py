@@ -90,7 +90,7 @@ class TestImageCacheGetSet:
         meta_b = cache.get("prompt", reference_image="b.png")
         assert meta_a is not None
         assert meta_b is not None
-        assert meta_a["cached_at"] != meta_b["cached_at"]
+        assert meta_a["reference_image"] != meta_b["reference_image"]
 
 
 class TestImageCacheClear:

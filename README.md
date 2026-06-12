@@ -1,300 +1,225 @@
 # VibeCode Agent
 
-AI 驱动的产品视频工作流工具，支持图生图微调、结尾帧生成、英雄镜头展示。
+AI driven product video workflow tool. From a single product image, through visual analysis, intent clarification, image-to-image refinement, video prompt generation, and automatic frame extraction, output a full-screen animated hero shot webpage.
 
-## 功能特点
+## Features
 
-- **状态机架构**：10 个阶段的完整工作流，支持断点续传
-- **图生图微调**：基于参考图重新生成，保留所有视觉元素
-- **结尾帧系统**：AI 自动生成 2-3 个结尾方案，用户选择后生成
-- **自动拆帧**：调用 ffmpeg 从视频提取帧序列
-- **英雄镜头展示**：帧序列转化为全屏背景动画网页
-- **多轮对话**：Claude Code 驱动，选项式交互
+- **State machine architecture**: 11-stage complete workflow with resume capability
+- **Dual-mode interaction**: Quick mode (agent decides) / Detailed mode (intent clarification dialogue)
+- **Structured visual analysis**: subject_type branching, style_profile 4-field coherent derivation
+- **Dynamic effect options**: Auto-generated from movable_elements, not fixed templates
+- **Real color extraction**: Accent color from image1, avoids generic AI palette
+- **GSAP entrance animations**: ease/scale/rotation auto-matched from style_profile keywords
+- **frontend-design integration**: Cached summary, no repeated loading
+- **Post-generation feedback loop**: Unified feedback at 4 key stages
 
-## 工作流程
+## Workflow
 
 ```
-产品图片 → 分析 → 确认效果 → 图1(首帧) → 选择结尾方案 → 图2(尾帧)
-    → 生成视频提示词 → 用户生成视频 → 拆帧 → 生成展示网页
+INIT -> ANALYZE -> SELECT_MODE -> CONFIRM_PRODUCT -> GENERATE
+-> CONFIRM_IMAGES -> BUILD_VIDEO_PROMPT -> WAIT_VIDEO
+-> EXTRACT_FRAMES -> BUILD_PROJECT -> DONE
 ```
 
-### 阶段说明
+### Stage Overview
 
-| 阶段 | 说明 |
-|------|------|
-| INIT | 检测 input/ 目录图片 |
-| ANALYZE | 视觉分析图片内容 |
-| CONFIRM_PRODUCT | 选择动态效果和视频比例 |
-| GENERATE | 基于参考图生成图1，再生成图2 |
-| CONFIRM_IMAGES | 展示结尾方案选项，确认首尾帧 |
-| BUILD_VIDEO_PROMPT | 生成视频过渡提示词 |
-| WAIT_VIDEO | 等待用户放入视频文件 |
-| EXTRACT_FRAMES | ffmpeg 拆帧 |
-| BUILD_PROJECT | 生成项目文件和展示网页 |
-| DONE | 完成 |
+| Stage | Description |
+|-------|-------------|
+| INIT | Detect images in input/ directory |
+| ANALYZE | Structured visual analysis, output image_analysis (subject_type, movable_elements, style_profile) |
+| SELECT_MODE | Mandatory choice: Quick mode / Detailed mode |
+| CONFIRM_PRODUCT | Dynamic effect options + 4-dimension intent clarification (effect/scene/exclude/style) |
+| GENERATE | Image1 regenerate + color extraction + Image2 refine |
+| CONFIRM_IMAGES | Ending intent clarification + image1->image2 comparison (transition_analysis) |
+| BUILD_VIDEO_PROMPT | Generate video transition prompt from transition_analysis |
+| WAIT_VIDEO | Wait for user to place video file |
+| EXTRACT_FRAMES | ffmpeg frame extraction |
+| BUILD_PROJECT | Copy generation + palette selection + frontend-design specs + webpage generation |
+| DONE | Complete, archive to data/ |
 
-## 快速开始
+## Quick Start
 
-### 1. 安装依赖
+### 1. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-需要 ffmpeg（拆帧必须）：
+ffmpeg required (for frame extraction):
 ```bash
 # macOS
 brew install ffmpeg
 
 # Windows
-# 下载 https://www.gyan.dev/ffmpeg/builds/ 后加入 PATH
+# Download from https://www.gyan.dev/ffmpeg/builds/ and add to PATH
 
 # Linux
 sudo apt install ffmpeg
 ```
 
-### 2. 配置 API Key
+### 2. Configure API Key
 
-编辑 `.env` 文件：
+Edit `.env` file:
 ```env
-ARK_API_KEY=你的火山方舟API密钥
+ARK_API_KEY=your-volcengine-api-key
 ```
 
-获取地址：https://console.volcengine.com/ark → API Key 管理
+Get key at: https://console.volcengine.com/ark -> API Key Management
 
-### 3. 准备产品图片
+### 3. Place Product Images
 
-将产品图片放入 `input/` 目录，支持 `.jpg`、`.jpeg`、`.png`、`.webp` 格式。
+Put product images in the `input/` directory. Supported formats: `.jpg`, `.jpeg`, `.png`, `.webp`, `.gif`, `.bmp`, `.tiff`.
 
-### 4. 启动工作流
+### 4. Start Workflow
 
-在 Claude Code 中运行：
-```
-/vibecode-agent
-```
-
-## 使用方式
-
-在 Claude Code 中通过命令与 Agent 交互：
-
+In Claude Code, run:
 ```
 /vibecode-agent
 ```
 
-Agent 会引导你完成整个工作流，支持选项式交互。
-
-## 批量处理 API
-
-```python
-from agent.batch import BatchWorkflow, BatchStatus
-
-batch = BatchWorkflow("state/batch.json")
-
-# 创建批次
-items = batch.create(["img1.jpg", "img2.jpg", "img3.jpg"])
-
-# 获取下一个待处理项
-next_item = batch.get_next()
-
-# 标记完成/跳过
-batch.complete("img1.jpg")
-batch.skip("img2.jpg")
-
-# 查看进度
-print(batch.progress())  # 0.0 ~ 1.0
-print(batch.get_completed())  # 已处理数量
-```
-
-状态值：`PENDING` → `COMPLETED` / `SKIPPED`
-
-## 缓存配置
-
-```python
-from agent.cache import ImageCache
-
-cache = ImageCache(
-    state_dir="state/cache",     # 元数据目录
-    image_dir="generated/cache"  # 缓存图片目录
-)
-
-# 写入缓存（可选 TTL）
-cache.set("prompt text", "output.png", reference_image="ref.jpg", ttl=3600)
-
-# 查询缓存
-meta = cache.get("prompt text")
-if meta:
-    print(meta["cached_at"])  # Unix 时间戳
-
-# 清空缓存
-cache.clear()
-```
-
-缓存基于 prompt + reference_image 的 MD5 哈希。设置 TTL（秒）可自动过期。
-
-## 支持的图片格式
-
-| 格式 | 扩展名 | 备注 |
-|------|--------|------|
-| JPEG | `.jpg`, `.jpeg` | 最常用 |
-| PNG | `.png` | 支持透明 |
-| WebP | `.webp` | 压缩率高 |
-| GIF | `.gif` | 支持动图 |
-| BMP | `.bmp` | 无压缩位图 |
-| TIFF | `.tiff` | 印刷级 |
-
-## 项目结构
+## Project Structure
 
 ```
 vibecode-workflow/
 ├── agent/
-│   ├── workflow.py           ← 状态管理
-│   ├── image_generator.py    ← Seedream API 封装（支持 img2img）
-│   ├── prompt_builder.py     ← 提示词生成（含结尾帧方案）
-│   ├── frame_extractor.py    ← ffmpeg 拆帧
-│   ├── web_builder.py        ← 英雄镜头网页生成
-│   ├── cache.py              ← 图片缓存
-│   ├── batch.py              ← 批量处理
-│   ├── progress.py           ← 进度通知
-│   ├── config.py             ← 配置管理
-│   └── exceptions.py         ← 自定义异常
+│   ├── workflow.py           <- State management
+│   ├── image_generator.py    <- Seedream API wrapper (img2img support)
+│   ├── prompt_builder.py     <- Prompt generation (with negative constraints)
+│   ├── color_extractor.py    <- Palette extraction + accent color selection
+│   ├── frame_extractor.py    <- ffmpeg frame extraction
+│   ├── web_builder.py        <- Hero shot webpage generation (GSAP params)
+│   ├── config.py             <- Configuration management
+│   ├── progress.py           <- Progress notifications
+│   ├── cache.py              <- Image caching
+│   ├── batch.py              <- Batch processing
+│   └── exceptions.py         <- Custom exceptions
 ├── templates/
-│   └── hero_shot.html        ← HTML 模板
-├── tests/                    ← 测试文件（168 个测试）
+│   └── hero_shot.html        <- HTML template (GSAP + CSS fallback)
 ├── .claude/skills/
-│   ├── vibecode-agent.md     ← 工作流技能定义
-│   └── hero-shot-builder.md  ← 网页构建技能
-├── state/                    ← 运行时状态（自动生成）
-├── generated/                ← 生成的图片、视频、帧（自动生成）
-│   ├── image1.png            ← 首帧
-│   ├── image2.png            ← 尾帧
-│   └── frames/               ← 帧序列
-├── projects/                 ← 生成的项目文件
-│   └── {产品名}/
-│       ├── index.html        ← 展示网页
-│       ├── public/frames/    ← 帧图片
-│       ├── PROMPT.md         ← 建站提示词
-│       └── rules.json        ← 编码规范
-├── input/                    ← 放产品图片
-├── .env                      ← API 密钥配置
-├── .env.example              ← 环境变量示例
-├── pyproject.toml            ← 项目配置
-└── requirements.txt          ← Python 依赖
+│   ├── vibecode-agent.md     <- Workflow skill definition (11 stages)
+│   └── hero-shot-builder.md  <- Webpage building skill
+├── state/                    <- Runtime state (auto-generated)
+├── generated/                <- Generated images, videos, frames (auto-generated)
+│   ├── image1.png
+│   ├── image2.png
+│   └── frames/
+├── projects/                 <- Generated project files
+│   └── {product_name}/
+│       ├── index.html
+│       ├── public/frames/
+│       ├── PROMPT.md
+│       └── rules.json
+├── input/                    <- Place product images here
+├── .env                      <- API key configuration
+├── requirements.txt
+└── README.md
 ```
 
-## 用户命令
+## Core Modules
 
-在工作流中可以随时使用：
-- **重新开始** — 清空状态，从头开始
-- **暂停** — 保存当前进度，下次继续
-- **跳过视频** — 直接用输入图片作为帧
-
-## Python 模块
-
-### workflow.py — 状态管理
-
-```python
-from agent.workflow import Workflow
-
-wf = Workflow()
-wf.get_stage()           # 获取当前阶段
-wf.set_stage("ANALYZE")  # 设置阶段
-wf.get_data("product")   # 获取数据
-wf.set_data("product", {"name": "产品"})  # 设置数据
-wf.reset()               # 重置到初始状态
-```
-
-### image_generator.py — 图片生成
-
-```python
-from agent.image_generator import generate_image
-
-# 文生图
-path = generate_image("产品描述", "output.png")
-
-# 图生图（参考图可以是 URL 或本地路径）
-path = generate_image("保留特征的描述", "output.png", reference_image="input/photo.jpg")
-```
-
-### prompt_builder.py — 提示词生成
+### prompt_builder.py - Prompt Generation
 
 ```python
 from agent.prompt_builder import (
-    build_regenerate_prompt,      # 生成图1的强约束重绘 Prompt
-    build_img2img_prompt,         # 生成图2的微调 Prompt
-    build_video_prompt,           # 生成视频过渡 Prompt
-    generate_ending_options,      # 生成结尾方案选项
-    build_ending_prompt,          # 生成结尾帧 Prompt
-)
-
-# 生成结尾方案
-options = generate_ending_options({
-    "subject": "动漫少女",
-    "action": "做嘘的手势",
-    "scene": "放射线背景",
-    "mood": "安静、温柔"
-})
-# 返回 [{"type": "动作完成", "description": "...", "prompt": "..."}, ...]
-
-# 生成结尾帧 Prompt
-prompt = build_ending_prompt(
-    "原始特征描述",
-    "结尾方案描述"
+    build_regenerate_prompt,      # Image1 regenerate (subject_type-based features)
+    build_img2img_prompt,         # Image2 refine (movable_elements-based)
+    build_video_prompt,           # Video transition prompt (transition_analysis-based)
+    generate_ending_options,      # Ending options (subject_type branching)
+    build_ending_prompt,          # Ending frame prompt
+    apply_modification,           # Apply user modifications
 )
 ```
 
-### frame_extractor.py — 视频拆帧
+All prompt functions automatically append `Avoid: ...` from confirmed_intent.exclude + image_analysis.key_features.
+
+### color_extractor.py - Color Extraction
 
 ```python
-from agent.frame_extractor import extract_frames
+from agent.color_extractor import extract_palette, pick_accent_color, hex_to_rgba
 
-count = extract_frames("video.mp4", "frames/", fps=24)  # 返回帧数
+palette = extract_palette("generated/image1.png", num_colors=5)
+accent = pick_accent_color(palette, image_analysis["style_profile"]["visual_tone"])
+glow = hex_to_rgba(accent, 0.3)
 ```
 
-### web_builder.py — 英雄镜头网页
+Dependencies: Pillow (required), colorthief (optional, better quantization). Auto-fallback to visual_tone presets for low-saturation/grayscale images.
+
+### web_builder.py - Webpage Generation
 
 ```python
-from agent.web_builder import generate_player_html
+from agent.web_builder import generate_player_html, get_design_direction, get_animation_preset
 
 html = generate_player_html(
-    frame_count=123,
-    fps=24,
-    title="产品名称"
+    frame_count=120, fps=24, title="Project",
+    copy={"tag": "...", "title": "...", "subtitle": "...", "description": "...", "cta_primary": "...", "cta_secondary": "..."},
+    font_heading="Clash Display", font_body="Satoshi",
+    accent_color="#ff00ff", accent_glow="rgba(255, 0, 255, 0.3)",
+    font_import="https://fonts.googleapis.com/css2?family=Satoshi...",
+    anim_ease="expo.out", anim_duration="0.5", anim_stagger="0.15",
+    gsap_scale="0.95", gsap_rotation="0",
 )
-# 返回完整 HTML 字符串
-
-with open("projects/产品名/index.html", "w", encoding="utf-8") as f:
-    f.write(html)
 ```
 
-## 结尾帧系统
+### workflow.json Structure
 
-图2 不再是简单的图1微调，而是有意义的结尾帧：
+```json
+{
+  "stage": "current stage",
+  "mode": "quick | detailed",
+  "image_analysis": {
+    "subject": "...",
+    "subject_type": "person|product|landscape|anime_character|abstract|architecture|food|other",
+    "movable_elements": ["..."],
+    "key_features": ["..."],
+    "style_profile": {
+      "keywords": ["..."],
+      "visual_tone": "...",
+      "copy_tone": "...",
+      "camera_style": "..."
+    }
+  },
+  "confirmed_intent": { "effect": "...", "scene": "...", "exclude": "...", "style": "..." },
+  "transition_analysis": { "changed_elements": ["..."], "change_description": "..." },
+  "extracted_palette": { "full_palette": ["..."], "accent_color": "#...", "accent_glow": "rgba(...)" },
+  "iteration_history": [ {"stage": "...", "feedback": "...", "action": "..."} ],
+  "needs_revisit": { "ANALYZE": false, "CONFIRM_IMAGES": false, "BUILD_VIDEO_PROMPT": false, "BUILD_PROJECT": false }
+}
+```
 
-1. **AI 分析图1**：识别主体、动作、场景、情绪
-2. **生成 2-3 个结尾方案**：
-   - 动作完成（当前动作的自然结束）
-   - 场景拉远（视角变化）
-   - 情绪变化（表情/姿态转变）
-3. **用户选择**：选择方案或自定义描述
-4. **生成图2**：基于选择生成，保留所有原始特征
+## Interaction Modes
 
-## 常见问题
+### Quick Mode (quick)
+Agent decides confirmed_intent based on image_analysis. Skips intent clarification. Supports mid-flow switch to detailed mode.
 
-**Q：ffmpeg 未找到？**
-A：安装 ffmpeg 并确保在系统 PATH 中。
+### Detailed Mode (agent proposes full plan)
+Agent proposes complete plan, user refines through multi-turn dialogue on 4 dimensions (effect/scene/exclude/style). Exit phrases: confirm/continue/ok/good/go/yes.
 
-**Q：图片生成失败？**
-A：检查 `.env` 中的 `ARK_API_KEY` 是否正确。
+### Post-Generation Feedback Loop
+ANALYZE, CONFIRM_IMAGES, BUILD_VIDEO_PROMPT, BUILD_PROJECT stages all append a unified feedback loop after showing results. Vague feedback narrows with specific direction options. Clear feedback triggers regeneration. After 5 consecutive rounds, suggests skipping and marking needs_revisit for later refinement.
 
-**Q：如何恢复中断的工作流？**
-A：直接运行 `/vibecode-agent`，会自动从上次中断处继续。
+## User Commands
 
-**Q：图1 和图2 不一致？**
-A：使用强约束 Prompt 保留所有视觉元素，如仍有问题可选择"全部重做"。
+- **Restart** - Clear state, start over
+- **Pause** - Save progress, resume later
+- **Skip video** - Use input images directly as frames
 
-**Q：如何自定义展示网页？**
-A：编辑 `projects/{产品名}/index.html`，修改 CSS 变量或文字内容。
+## FAQ
 
-## 许可证
+**Q: ffmpeg not found?**
+A: Install ffmpeg and ensure it is in your system PATH.
+
+**Q: Image generation failed?**
+A: Check that ARK_API_KEY in `.env` is correct.
+
+**Q: How to resume an interrupted workflow?**
+A: Run `/vibecode-agent` - it reads state/workflow.json and resumes from the last stage.
+
+**Q: GSAP loading failed?**
+A: Template automatically falls back to CSS @keyframes animations. Agent will notify you.
+
+**Q: Accent color not ideal?**
+A: BUILD_PROJECT stage shows 2-3 candidate colors for selection, or you can specify manually.
+
+## License
 
 MIT

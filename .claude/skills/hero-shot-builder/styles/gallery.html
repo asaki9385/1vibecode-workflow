@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>$title</title>
+<style>
+  @import url('$font_import');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --white: #ffffff;
+    --black: #000000;
+    --glass: rgba(255, 255, 255, 0.04);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --text-primary: rgba(255, 255, 255, 0.95);
+    --text-secondary: rgba(255, 255, 255, 0.5);
+    --text-muted: rgba(255, 255, 255, 0.25);
+    --accent: $accent_color;
+    --accent-glow: $accent_glow;
+  }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: '$font_body', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  #bg {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+  }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 100%);
+    pointer-events: none;
+  }
+
+  .grain {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    opacity: 0.03;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 128px;
+  }
+
+  .bg-decorations {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .deco-number {
+    position: absolute;
+    font-family: '$font_heading', 'Helvetica Neue', sans-serif;
+    font-size: 20vw;
+    font-weight: 700;
+    opacity: 0.06;
+    color: var(--text-primary);
+    left: 5%;
+    top: 15%;
+    line-height: 1;
+    user-select: none;
+  }
+
+  .content {
+    position: relative;
+    z-index: 10;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header - Gallery: label style */
+  header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 clamp(24px, 4vw, 48px);
+    z-index: 100;
+    background: var(--black);
+    border-bottom: 1px solid var(--glass-border);
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .header-number {
+    font-family: '$font_label', 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+
+  .header-title {
+    font-family: '$font_label', 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text-secondary);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .header-year {
+    font-family: '$font_label', 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+  }
+
+  .hero {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 120px clamp(24px, 8vw, 120px) 80px;
+    max-width: 800px;
+  }
+
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: '$font_label', 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 40px;
+  }
+
+  .hero-tag::before {
+    content: '';
+    width: 24px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .hero h1 {
+    font-family: '$font_heading', 'Helvetica Neue', sans-serif;
+    font-size: clamp(40px, 6vw, 96px);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    margin-bottom: 24px;
+  }
+
+  .hero-subtitle {
+    font-family: '$font_heading', 'Helvetica Neue', sans-serif;
+    font-size: clamp(18px, 2vw, 28px);
+    font-weight: 300;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+  }
+
+  .hero p {
+    font-size: clamp(13px, 1.2vw, 15px);
+    line-height: 1.6;
+    color: var(--text-secondary);
+    max-width: 480px;
+    margin-bottom: 48px;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    background: var(--white);
+    color: var(--black);
+    border: none;
+    font-family: '$font_label', 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent);
+    color: var(--black);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 24px;
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--glass-border);
+    font-family: '$font_label', 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--text-secondary);
+  }
+
+  .detail {
+    padding: 120px clamp(24px, 8vw, 120px);
+    border-top: 1px solid var(--glass-border);
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 160px 1fr 1fr;
+    gap: 64px;
+    max-width: 1200px;
+  }
+
+  .detail-label {
+    font-family: '$font_label', 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding-top: 4px;
+  }
+
+  .detail-content h2 {
+    font-family: '$font_heading', 'Helvetica Neue', sans-serif;
+    font-size: clamp(20px, 2.5vw, 28px);
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .detail-content p {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+
+  .detail-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .meta-label {
+    font-family: '$font_label', 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  .meta-value {
+    font-family: '$font_heading', 'Helvetica Neue', sans-serif;
+    font-size: 16px;
+    font-weight: 300;
+    color: var(--text-primary);
+  }
+
+  .tech {
+    padding: 120px clamp(24px, 8vw, 120px);
+    border-top: 1px solid var(--glass-border);
+  }
+
+  .tech-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 64px;
+  }
+
+  .section-number {
+    font-family: '$font_label', 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+
+  .tech-header h2 {
+    font-family: '$font_heading', 'Helvetica Neue', sans-serif;
+    font-size: clamp(20px, 2.5vw, 28px);
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--glass-border);
+  }
+
+  .tech-card {
+    padding: 40px 32px;
+    background: var(--black);
+  }
+
+  .tech-icon {
+    font-size: 24px;
+    margin-bottom: 16px;
+  }
+
+  .tech-card h3 {
+    font-family: '$font_label', 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .tech-card p {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+
+  .stats {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    background: var(--black);
+    border-top: 1px solid var(--glass-border);
+  }
+
+  .stat {
+    flex: 1;
+    max-width: 200px;
+    padding: 16px 24px;
+    text-align: center;
+    border-right: 1px solid var(--glass-border);
+  }
+
+  .stat:last-child {
+    border-right: none;
+  }
+
+  .stat-value {
+    font-family: '$font_label', 'Space Mono', monospace;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-family: '$font_label', 'Space Mono', monospace;
+    font-size: 8px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  .scroll-hint {
+    position: fixed;
+    bottom: 80px;
+    right: 40px;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .scroll-hint span {
+    font-family: '$font_label', 'Space Mono', monospace;
+    font-size: 8px;
+    color: var(--text-muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    writing-mode: vertical-rl;
+  }
+
+  .scroll-line {
+    width: 1px;
+    height: 32px;
+    background: var(--text-muted);
+    animation: scrollPulse 2s infinite;
+  }
+
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 0.6; }
+  }
+
+  .loader {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: var(--black);
+    z-index: 1000;
+    transition: opacity 0.6s, visibility 0.6s;
+  }
+
+  .loader.done {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .loader-text {
+    font-family: '$font_label', 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+
+  .loader-bar {
+    margin-top: 16px;
+    width: 80px;
+    height: 1px;
+    background: var(--glass-border);
+    overflow: hidden;
+  }
+
+  .loader-fill {
+    height: 100%;
+    background: var(--text-primary);
+    width: 0%;
+    transition: width 0.3s;
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+
+  @media (max-width: 768px) {
+    .hero { padding: 100px 24px 80px; }
+    .hero-actions { flex-direction: column; align-items: flex-start; }
+    .scroll-hint { display: none; }
+    .stats { flex-wrap: wrap; }
+    .stat { min-width: 50%; border-bottom: 1px solid var(--glass-border); }
+    .detail-grid { grid-template-columns: 1fr; gap: 32px; }
+    .tech-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+<div class="overlay"></div>
+<div class="grain"></div>
+
+<div class="bg-decorations">
+  <div class="deco-number">$deco_number</div>
+</div>
+
+<div class="loader" id="loader">
+  <div class="loader-text">Loading</div>
+  <div class="loader-bar"><div class="loader-fill" id="loadFill"></div></div>
+</div>
+
+<div class="content">
+  <header id="header">
+    <div class="header-left">
+      <span class="header-number">$deco_number</span>
+      <span class="header-title">$title</span>
+    </div>
+    <span class="header-year">2024</span>
+  </header>
+
+  <section class="hero" id="hero">
+    <div class="hero-tag">$tag</div>
+    <h1>$hero_title</h1>
+    <div class="hero-subtitle">$subtitle</div>
+    <p>$description</p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="toggle()">
+        $cta_primary
+      </button>
+      <a href="#detail" class="btn-secondary">$cta_secondary</a>
+    </div>
+  </section>
+
+  <section class="detail reveal" id="detail">
+    <div class="detail-grid">
+      <div class="detail-label">About</div>
+      <div class="detail-content">
+        <h2>$hero_title</h2>
+        <p>$description</p>
+      </div>
+      <div class="detail-meta">
+        <div class="meta-item">
+          <span class="meta-label">Frames</span>
+          <span class="meta-value">$frame_count</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Frame Rate</span>
+          <span class="meta-value">${fps}fps</span>
+       106        </div>
+        <div class="meta-item">
+          <span class="meta-label">Duration</span>
+          <span class="meta-value">${duration}s</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tech reveal" id="tech">
+    <div class="tech-header">
+      <span class="section-number">02</span>
+      <h2>Process</h2>
+    </div>
+    <div class="tech-grid">
+      <div class="tech-card">
+        <div class="tech-icon">🎨</div>
+        <h3>Analysis</h3>
+        <p>Visual analysis of reference image to extract style, mood, and key features.</p>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">✨</div>
+        <h3>Generation</h3>
+        <p>AI-powered image generation with style preservation and effect application.</p>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🎬</div>
+        <h3>Motion</h3>
+        <p>Frame extraction and animation to create seamless motion sequences.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="stats">
+  <div class="stat">
+    <div class="stat-value">$frame_count</div>
+    <div class="stat-label">Frames</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">${fps}fps</div>
+    <div class="stat-label">Frame Rate</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">${duration}s</div>
+    <div class="stat-label">Duration</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">AI</div>
+    <div class="stat-label">Generated</div>
+  </div>
+</div>
+
+<div class="scroll-hint">
+  <span>Scroll</span>
+  <div class="scroll-line"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+<script>
+const TOTAL = $frame_count;
+const FPS = $fps;
+const ANIM_EASE = "$anim_ease";
+const ANIM_DURATION = "$anim_duration";
+const ANIM_STAGGER = "$anim_stagger";
+const PARALLAX_ENABLED = $parallax_enabled;
+
+const canvas = document.getElementById('bg');
+const ctx = canvas.getContext('2d');
+const loader = document.getElementById('loader');
+const loadFill = document.getElementById('loadFill');
+
+let frames = [];
+let current = 0;
+let playing = false;
+let lastTime = 0;
+let loaded = 0;
+let ready = false;
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  if (frames[current] && frames[current].complete) draw(current);
+}
+
+function draw(idx) {
+  if (!frames[idx] || !frames[idx].complete || !frames[idx].naturalWidth) return;
+  const img = frames[idx];
+  const scale = Math.max(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
+  const w = img.naturalWidth * scale;
+  const h = img.naturalHeight * scale;
+  const x = (canvas.width - w) / 2;
+  const y = (canvas.height - h) / 2;
+  ctx.drawImage(img, x, y, w, h);
+}
+
+function loop(time) {
+  if (!playing) return;
+  if (time - lastTime >= 1000 / FPS) {
+    current = (current + 1) % TOTAL;
+    draw(current);
+    lastTime = time;
+  }
+  requestAnimationFrame(loop);
+}
+
+function toggle() {
+  if (!ready) return;
+  playing = !playing;
+  if (playing) {
+    requestAnimationFrame(loop);
+  }
+}
+
+function start() {
+  if (ready) return;
+  ready = true;
+  playing = true;
+  loader.classList.add('done');
+  draw(0);
+  requestAnimationFrame(loop);
+
+  // Gallery entrance timeline
+  const tl = gsap.timeline();
+  tl.from("header", { opacity: 0, duration: 1.2, ease: ANIM_EASE })
+    .from(".hero-tag", { opacity: 0, x: -20, duration: parseFloat(ANIM_DURATION), ease: ANIM_EASE }, "-=0.6")
+    .from(".hero h1", { opacity: 0, x: -30, duration: parseFloat(ANIM_DURATION) * 1.2, ease: ANIM_EASE }, "-=0.8")
+    .from(".hero-subtitle", { opacity: 0, duration: parseFloat(ANIM_DURATION), ease: ANIM_EASE }, "-=0.6")
+    .from(".hero p", { opacity: 0, duration: parseFloat(ANIM_DURATION), ease: ANIM_EASE }, "-=0.6")
+    .from(".hero-actions", { opacity: 0, duration: parseFloat(ANIM_DURATION), ease: ANIM_EASE }, "-=0.4")
+    .from(".stats", { opacity: 0, duration: 0.5, ease: "power2.out" }, "-=0.2");
+
+  gsap.utils.toArray('.reveal').forEach(el => {
+    gsap.from(el, {
+      scrollTrigger: {
+        trigger: el,
+        start: "top 85%",
+        end: "top 50%",
+        toggleActions: "play none none reverse"
+      },
+      opacity: 0,
+      x: -30,
+      duration: parseFloat(ANIM_DURATION),
+      ease: "power2.out"
+    });
+  });
+}
+
+if (typeof gsap === 'undefined') {
+  console.warn('GSAP CDN failed to load, falling back to CSS animations');
+  document.body.setAttribute('data-gsap-failed', 'true');
+}
+
+resize();
+window.addEventListener('resize', resize);
+
+for (let i = 1; i <= TOTAL; i++) {
+  const img = new Image();
+  img.onload = () => {
+    loaded++;
+    loadFill.style.width = (loaded / TOTAL * 100) + '%';
+    if (loaded === 1) {
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      draw(0);
+    }
+    if (loaded >= Math.min(12, TOTAL)) start();
+  };
+  img.src = `public/frames/frame_${String(i).padStart(4, '0')}.jpg`;
+  frames.push(img);
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    toggle();
+  }
+});
+</script>
+</body>
+</html>

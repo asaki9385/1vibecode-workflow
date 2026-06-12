@@ -56,9 +56,21 @@ def test_build_img2img_prompt_custom():
 
 
 def test_build_video_prompt():
-    """Should generate video transition prompt"""
-    result = build_video_prompt("wind")
-    assert "wind" in result.lower()
+    """Should generate video transition prompt from analysis dicts"""
+    image_analysis = {
+        "subject": "anime girl",
+        "movable_elements": ["hair", "cloak"],
+        "style_keywords": ["anime", "cel-shading"]
+    }
+    transition_analysis = {
+        "changed_elements": ["hair", "cloak"],
+        "change_description": "hair flows in the wind"
+    }
+    result = build_video_prompt(image_analysis, transition_analysis)
+    assert "anime girl" in result
+    assert "hair" in result
+    assert "24fps" in result
+    assert "cinematic quality" in result
     assert len(result) > 50
 
 

@@ -1,0 +1,110 @@
+{
+  "parameters": {
+    "deco_density": {
+      "type": "enum",
+      "values": ["none", "sparse", "normal", "dense"],
+      "default": "normal",
+      "description": "装饰元素密度"
+    },
+    "anim_energy": {
+      "type": "enum",
+      "values": ["calm", "moderate", "high"],
+      "default": "moderate",
+      "description": "动画节奏强度"
+    },
+    "layout_compact": {
+      "type": "bool",
+      "default": false,
+      "description": "布局紧凑度"
+    },
+    "text_overlay": {
+      "type": "bool",
+      "default": false,
+      "description": "文字是否叠加在画面上"
+    },
+    "parallax_depth": {
+      "type": "enum",
+      "values": ["none", "subtle", "deep"],
+      "default": "subtle",
+      "description": "视差滚动深度"
+    }
+  },
+  "deco_density_mappings": {
+    "none": {
+      "deco_text": false,
+      "grain_overlay": false,
+      "radial_glow": false,
+      "accent_lines": false,
+      "ghost_text": false
+    },
+    "sparse": {
+      "deco_text": false,
+      "grain_overlay": true,
+      "radial_glow": true,
+      "accent_lines": false,
+      "ghost_text": false
+    },
+    "normal": {
+      "deco_text": true,
+      "grain_overlay": true,
+      "radial_glow": true,
+      "accent_lines": false,
+      "ghost_text": false
+    },
+    "dense": {
+      "deco_text": true,
+      "grain_overlay": true,
+      "radial_glow": true,
+      "accent_lines": true,
+      "ghost_text": true
+    }
+  },
+  "anim_energy_mappings": {
+    "calm": {
+      "entrance_duration": 1.2,
+      "entrance_easing": "sine.inOut",
+      "scroll_duration": 1.0,
+      "stagger": 0.3
+    },
+    "moderate": {
+      "entrance_duration": 0.8,
+      "entrance_easing": "power2.out",
+      "scroll_duration": 0.8,
+      "stagger": 0.2
+    },
+    "high": {
+      "entrance_duration": 0.5,
+      "entrance_easing": "expo.out",
+      "scroll_duration": 0.5,
+      "stagger": 0.15
+    }
+  },
+  "layout_mappings": {
+    "compact_true": {
+      "section_padding": "60px clamp(24px, 4vw, 60px)",
+      "grid_gap": "24px",
+      "hero_min_height": "80vh"
+    },
+    "compact_false": {
+      "section_padding": "120px clamp(24px, 6vw, 80px)",
+      "grid_gap": "48px",
+      "hero_min_height": "100vh"
+    }
+  },
+  "parallax_mappings": {
+    "none": {
+      "parallax_enabled": false
+    },
+    "subtle": {
+      "parallax_enabled": true,
+      "parallax_bg_speed": 0.3,
+      "parallax_content_speed": 0.1
+    },
+    "deep": {
+      "parallax_enabled": true,
+      "parallax_bg_speed": 0.5,
+      "parallax_content_speed": 0.2,
+      "parallax_deco_speed": 0.4
+    }
+  }
+}

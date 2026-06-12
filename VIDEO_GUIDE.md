@@ -1,4 +1,4 @@
-# 视频生成指南
+# 即梦AI / Seedance 视频生成指南
 
 ## 使用工具
 即梦AI (Seedance) 或其他 AI 视频生成工具
@@ -12,12 +12,15 @@
 6. 生成视频
 
 ## 视频 Prompt
-Anime girl with green hair doing "shh" gesture. Wind gently blows, hair flows naturally with movement. She slowly lowers her hand and transitions to a gentle smile. Background radiating lines subtly animate. Smooth 24fps animation, 5 seconds, cinematic quality.
+
+```
+水彩风格杜鹃花束，柔和紫蓝粉色调。花瓣从静态盛放变为随风轻微摇曳，部分花瓣呈现飘动姿态。Camera fixed, no camera movement. Smooth 24fps animation, 5s, cinematic quality. organic, warm, natural style.
+```
 
 ## 建议参数
 - 时长：5 秒
 - 比例：16:9
-- 分辨率：1080p 或更高
+- 分辨率：1920x1080 或更高
 - 帧率：24fps
 
 ## 输出
