@@ -1,6 +1,7 @@
 """Centralized configuration for the agent package."""
 
 import os
+import shutil
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -15,115 +16,89 @@ BASE_URL: str = os.getenv("BASE_URL", "https://ark.cn-beijing.volces.com/api/v3"
 API_TIMEOUT: int = int(os.getenv("API_TIMEOUT", "60"))
 FFMPEG_PATH: str = os.getenv("FFMPEG_PATH", "")
 
-# Data directory for all intermediate files
+# Working directories (current session)
+INPUT_DIR: Path = PROJECT_ROOT / "input"
+GENERATED_DIR: Path = PROJECT_ROOT / "generated"
+STATE_DIR: Path = PROJECT_ROOT / "state"
+TEMP_DIR: Path = PROJECT_ROOT / "temp"
+
+# Archive directory (completed workflows)
 DATA_DIR: Path = PROJECT_ROOT / "data"
 
-# Default project name (can be overridden per session)
-DEFAULT_PROJECT: str = os.getenv("VIBECODE_PROJECT", "default")
+# Projects output directory (built websites)
+PROJECTS_DIR: Path = PROJECT_ROOT / "projects"
 
-def get_project_dir(project_name: str = None) -> Path:
-    """Get project-specific data directory."""
-    name = project_name or DEFAULT_PROJECT
-    return DATA_DIR / name
+# Templates
+TEMPLATES_DIR: Path = PROJECT_ROOT / "templates"
 
-def get_input_dir(project_name: str = None) -> Path:
-    """Get input directory for a project."""
-    return get_project_dir(project_name) / "input"
-
-def get_generated_dir(project_name: str = None) -> Path:
-    """Get generated directory for a project."""
-    return get_project_dir(project_name) / "generated"
-
-def get_state_dir(project_name: str = None) -> Path:
-    """Get state directory for a project."""
-    return get_project_dir(project_name) / "state"
-
-def get_projects_dir() -> Path:
-    """Get projects output directory (for built websites)."""
-    return PROJECT_ROOT / "projects"
-
-def get_templates_dir() -> Path:
-    """Get templates directory."""
-    return PROJECT_ROOT / "templates"
-
-# Legacy paths (for backward compatibility)
-STATE_DIR: Path = PROJECT_ROOT / "state"
+# State files
 WORKFLOW_STATE_FILE: Path = STATE_DIR / "workflow.json"
 BATCH_STATE_FILE: Path = STATE_DIR / "batch.json"
 CACHE_STATE_DIR: Path = STATE_DIR / "cache"
 PROGRESS_STATE_DIR: Path = STATE_DIR / "progress"
-
-GENERATED_DIR: Path = PROJECT_ROOT / "generated"
 CACHE_IMAGE_DIR: Path = GENERATED_DIR / "cache"
-PROJECTS_DIR: Path = PROJECT_ROOT / "projects"
-
-TEMPLATES_DIR: Path = PROJECT_ROOT / "templates"
 
 
-def ensure_project_dirs(project_name: str = None):
-    """Create all necessary directories for a project."""
-    dirs = [
-        get_project_dir(project_name),
-        get_input_dir(project_name),
-        get_generated_dir(project_name),
-        get_generated_dir(project_name) / "frames",
-        get_generated_dir(project_name) / "cache",
-        get_state_dir(project_name),
-        get_state_dir(project_name) / "cache",
-        get_state_dir(project_name) / "progress",
-        get_projects_dir(),
-    ]
-    for d in dirs:
-        d.mkdir(parents=True, exist_ok=True)
+def get_archive_dir(project_name: str) -> Path:
+    """Get archive directory for a completed project."""
+    return DATA_DIR / project_name
 
 
-def migrate_legacy_data(project_name: str = None):
-    """Migrate data from legacy directories to new data/ structure.
+def archive_completed_workflow(project_name: str):
+    """Archive a completed workflow to data/{project_name}/
     
-    This moves files from the old flat structure to the new project-based structure.
+    Called when workflow reaches DONE stage.
+    Copies input/, generated/, state/ to data/{project_name}/
     """
-    import shutil
+    archive_dir = get_archive_dir(project_name)
+    archive_input = archive_dir / "input"
+    archive_generated = archive_dir / "generated"
+    archive_state = archive_dir / "state"
     
-    name = project_name or DEFAULT_PROJECT
-    new_input = get_input_dir(name)
-    new_generated = get_generated_dir(name)
-    new_state = get_state_dir(name)
+    # Create directories
+    for d in [archive_dir, archive_input, archive_generated, archive_state]:
+        d.mkdir(parents=True, exist_ok=True)
     
-    # Migrate input/
-    old_input = PROJECT_ROOT / "input"
-    if old_input.exists() and old_input.is_dir():
-        for f in old_input.iterdir():
+    # Copy input files
+    if INPUT_DIR.exists():
+        for f in INPUT_DIR.iterdir():
             if f.is_file():
-                dest = new_input / f.name
+                dest = archive_input / f.name
                 if not dest.exists():
-                    shutil.move(str(f), str(dest))
-                    print(f"Migrated: {f.name} -> data/{name}/input/")
+                    shutil.copy2(str(f), str(dest))
     
-    # Migrate generated/
-    old_generated = PROJECT_ROOT / "generated"
-    if old_generated.exists() and old_generated.is_dir():
-        for f in old_generated.iterdir():
+    # Copy generated files
+    if GENERATED_DIR.exists():
+        for f in GENERATED_DIR.iterdir():
             if f.is_file():
-                dest = new_generated / f.name
+                dest = archive_generated / f.name
                 if not dest.exists():
-                    shutil.move(str(f), str(dest))
-                    print(f"Migrated: {f.name} -> data/{name}/generated/")
-        # Migrate frames subdirectory
-        old_frames = old_generated / "frames"
-        if old_frames.exists() and old_frames.is_dir():
-            new_frames = new_generated / "frames"
-            for f in old_frames.iterdir():
+                    shutil.copy2(str(f), str(dest))
+        # Copy frames subdirectory
+        frames_dir = GENERATED_DIR / "frames"
+        if frames_dir.exists():
+            archive_frames = archive_generated / "frames"
+            archive_frames.mkdir(exist_ok=True)
+            for f in frames_dir.iterdir():
                 if f.is_file():
-                    dest = new_frames / f.name
+                    dest = archive_frames / f.name
                     if not dest.exists():
-                        shutil.move(str(f), str(dest))
+                        shutil.copy2(str(f), str(dest))
     
-    # Migrate state/
-    old_state = PROJECT_ROOT / "state"
-    if old_state.exists() and old_state.is_dir():
-        for f in old_state.iterdir():
+    # Copy state files
+    if STATE_DIR.exists():
+        for f in STATE_DIR.iterdir():
             if f.is_file():
-                dest = new_state / f.name
+                dest = archive_state / f.name
                 if not dest.exists():
-                    shutil.move(str(f), str(dest))
-                    print(f"Migrated: {f.name} -> data/{name}/state/")
+                    shutil.copy2(str(f), str(dest))
+    
+    print(f"Workflow archived to data/{project_name}/")
+
+
+def ensure_working_dirs():
+    """Ensure working directories exist."""
+    for d in [INPUT_DIR, GENERATED_DIR, STATE_DIR, TEMP_DIR]:
+        d.mkdir(parents=True, exist_ok=True)
+    (GENERATED_DIR / "frames").mkdir(exist_ok=True)
+    (GENERATED_DIR / "cache").mkdir(exist_ok=True)

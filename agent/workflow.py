@@ -7,8 +7,6 @@ import portalocker
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_STATE_FILE = "state/workflow.json"
-
 STAGES = [
     "INIT",
     "ANALYZE",
@@ -23,21 +21,12 @@ STAGES = [
 ]
 
 class Workflow:
-    def __init__(self, state_file: str = DEFAULT_STATE_FILE, project_name: str = None):
-        """Initialize workflow.
+    def __init__(self, state_file: str = None):
+        """Initialize workflow using working directories."""
+        from agent.config import STATE_DIR, WORKFLOW_STATE_FILE, ensure_working_dirs
         
-        Args:
-            state_file: Path to state file (legacy support)
-            project_name: Project name for data/ structure
-        """
-        if project_name:
-            from agent.config import get_state_dir, ensure_project_dirs
-            ensure_project_dirs(project_name)
-            self.state_file = str(get_state_dir(project_name) / "workflow.json")
-            self.project_name = project_name
-        else:
-            self.state_file = state_file
-            self.project_name = None
+        ensure_working_dirs()
+        self.state_file = state_file or str(WORKFLOW_STATE_FILE)
         self._data = self._load()
 
     def _load(self) -> dict:
@@ -62,6 +51,7 @@ class Workflow:
         dir_name = os.path.dirname(self.state_file)
         if dir_name:
             os.makedirs(dir_name, exist_ok=True)
+        
         with open(self.state_file, "w", encoding="utf-8") as f:
             portalocker.lock(f, portalocker.LOCK_EX)
             try:
@@ -88,6 +78,10 @@ class Workflow:
         logger.info("Stage transition: %s -> %s", current, stage)
         self._data["stage"] = stage
         self.save()
+        
+        # Archive workflow when DONE
+        if stage == "DONE":
+            self._archive()
 
     def get_data(self, key: str, default: Any = None) -> Any:
         """Get data by key"""
@@ -104,17 +98,29 @@ class Workflow:
         self._data = {"stage": "INIT"}
         self.save()
     
+    def _archive(self):
+        """Archive completed workflow to data/{project_name}/"""
+        from agent.config import archive_completed_workflow
+        
+        # Use product name from image_analysis or default
+        analysis = self._data.get("image_analysis", {})
+        subject = analysis.get("subject", "project")
+        # Clean subject for use as directory name
+        project_name = subject.replace(" ", "_").replace("/", "_")[:50]
+        
+        archive_completed_workflow(project_name)
+    
     def get_input_path(self, filename: str) -> str:
         """Get full path for input file."""
-        from agent.config import get_input_dir
-        return str(get_input_dir(self.project_name) / filename)
+        from agent.config import INPUT_DIR
+        return str(INPUT_DIR / filename)
     
     def get_generated_path(self, filename: str) -> str:
         """Get full path for generated file."""
-        from agent.config import get_generated_dir
-        return str(get_generated_dir(self.project_name) / filename)
+        from agent.config import GENERATED_DIR
+        return str(GENERATED_DIR / filename)
     
     def get_frames_dir(self) -> str:
         """Get frames directory path."""
-        from agent.config import get_generated_dir
-        return str(get_generated_dir(self.project_name) / "frames")
+        from agent.config import GENERATED_DIR
+        return str(GENERATED_DIR / "frames")
