@@ -23,8 +23,21 @@ STAGES = [
 ]
 
 class Workflow:
-    def __init__(self, state_file: str = DEFAULT_STATE_FILE):
-        self.state_file = state_file
+    def __init__(self, state_file: str = DEFAULT_STATE_FILE, project_name: str = None):
+        """Initialize workflow.
+        
+        Args:
+            state_file: Path to state file (legacy support)
+            project_name: Project name for data/ structure
+        """
+        if project_name:
+            from agent.config import get_state_dir, ensure_project_dirs
+            ensure_project_dirs(project_name)
+            self.state_file = str(get_state_dir(project_name) / "workflow.json")
+            self.project_name = project_name
+        else:
+            self.state_file = state_file
+            self.project_name = None
         self._data = self._load()
 
     def _load(self) -> dict:
@@ -90,3 +103,18 @@ class Workflow:
         logger.info("Workflow reset from stage %s", self.get_stage())
         self._data = {"stage": "INIT"}
         self.save()
+    
+    def get_input_path(self, filename: str) -> str:
+        """Get full path for input file."""
+        from agent.config import get_input_dir
+        return str(get_input_dir(self.project_name) / filename)
+    
+    def get_generated_path(self, filename: str) -> str:
+        """Get full path for generated file."""
+        from agent.config import get_generated_dir
+        return str(get_generated_dir(self.project_name) / filename)
+    
+    def get_frames_dir(self) -> str:
+        """Get frames directory path."""
+        from agent.config import get_generated_dir
+        return str(get_generated_dir(self.project_name) / "frames")
